@@ -1,0 +1,179 @@
+.rah-container {
+  margin: 28px auto;
+  padding: 24px;
+  max-width: 1180px;
+  color: #e8edf8;
+  background: #111827;
+  border: 1px solid #263449;
+  border-radius: 18px;
+}
+
+.rah-heading,
+.rah-card-main,
+.rah-detail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.rah-heading h2 {
+  margin: 4px 0 8px;
+  font-size: 25px;
+}
+
+.rah-eyebrow {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.rah-subtitle,
+.rah-date,
+.rah-muted {
+  color: #aab7cb;
+  font-size: 13px;
+}
+
+.rah-date {
+  margin: 7px 0 0;
+}
+
+.rah-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.rah-card,
+.rah-detail,
+.rah-empty {
+  padding: 20px;
+  background: #182235;
+  border: 1px solid #2d3b51;
+  border-radius: 14px;
+}
+
+.rah-card h3,
+.rah-detail h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.rah-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 78px;
+  padding: 12px;
+  background: #22354b;
+  border-radius: 12px;
+}
+
+.rah-score strong {
+  color: #86efac;
+  font-size: 23px;
+}
+
+.rah-score span {
+  margin-top: 4px;
+  color: #c1cede;
+  font-size: 11px;
+}
+
+.rah-summary {
+  color: #d0d9e8;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.rah-refresh,
+.rah-view,
+.rah-close {
+  padding: 10px 14px;
+  color: #f8fafc;
+  background: #2563eb;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rah-refresh:disabled,
+.rah-view:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rah-close {
+  background: #334155;
+}
+
+.rah-detail {
+  margin-top: 24px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.rah-detail h4 {
+  margin-bottom: 6px;
+}
+
+.rah-detail p {
+  color: #cbd5e1;
+}
+
+.rah-result-section {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #334155;
+}
+
+.rah-result-section ul {
+  padding-left: 22px;
+  color: #d4deeb;
+}
+
+.rah-result-section li {
+  margin: 7px 0;
+}
+
+.rah-empty {
+  margin-top: 20px;
+}
+
+.rah-empty p {
+  color: #aab7cb;
+}
+
+.rah-error {
+  margin-top: 16px;
+  padding: 12px;
+  color: #fecaca;
+  background: #431f2a;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .rah-container {
+    padding: 16px;
+  }
+
+  .rah-heading,
+  .rah-card-main,
+  .rah-detail-heading {
+    align-items: flex-start;
+  }
+
+  .rah-heading {
+    flex-direction: column;
+  }
+
+  .rah-card-main {
+    flex-wrap: wrap;
+  }
+}
