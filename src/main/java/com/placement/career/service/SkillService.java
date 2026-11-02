@@ -1,9 +1,11 @@
+
 package com.placement.career.service;
 
 import com.placement.career.dto.*;
 import com.placement.career.entity.*;
 import com.placement.career.exception.ResourceNotFoundException;
 import com.placement.career.repository.*;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +66,8 @@ public class SkillService {
                 .toList();
     }
 
+    // ADD STUDENT SKILL
+
     @Transactional
     public StudentSkillResponse addStudentSkill(
             String email,
@@ -121,10 +125,13 @@ public class SkillService {
                 saved.getId(),
                 skill.getId(),
                 skill.getName(),
+                skill.getCategory(),
                 saved.getProficiency(),
                 saved.getYearsOfExperience()
         );
     }
+
+    // GET MY SKILLS
 
     public List<StudentSkillResponse> getMySkills(
             String email) {
@@ -151,11 +158,15 @@ public class SkillService {
                         skill.getId(),
                         skill.getSkill().getId(),
                         skill.getSkill().getName(),
+                        skill.getSkill().getCategory(),
                         skill.getProficiency(),
                         skill.getYearsOfExperience()
                 ))
                 .toList();
     }
+
+    // UPDATE STUDENT SKILL
+
     @Transactional
     public StudentSkillResponse updateStudentSkill(
             String email,
@@ -165,37 +176,51 @@ public class SkillService {
         User user = userRepository
                 .findByEmailIgnoreCase(email)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User not found"));
+                        new ResourceNotFoundException(
+                                "User not found"
+                        ));
 
         StudentProfile student = studentProfileRepository
                 .findByUserId(user.getId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Student profile not found"));
+                        new ResourceNotFoundException(
+                                "Student profile not found"
+                        ));
 
         StudentSkill studentSkill = studentSkillRepository
                 .findById(studentSkillId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Student skill not found"));
+                        new ResourceNotFoundException(
+                                "Student skill not found"
+                        ));
 
-        if (!studentSkill.getStudent().getId().equals(student.getId())) {
+        if (!studentSkill.getStudent().getId()
+                .equals(student.getId())) {
+
             throw new IllegalArgumentException(
                     "You can update only your own skills"
             );
         }
 
         studentSkill.setProficiency(request.proficiency());
-        studentSkill.setYearsOfExperience(request.yearsOfExperience());
+        studentSkill.setYearsOfExperience(
+                request.yearsOfExperience()
+        );
 
-        StudentSkill saved = studentSkillRepository.save(studentSkill);
+        StudentSkill saved =
+                studentSkillRepository.save(studentSkill);
 
         return new StudentSkillResponse(
                 saved.getId(),
                 saved.getSkill().getId(),
                 saved.getSkill().getName(),
+                saved.getSkill().getCategory(),
                 saved.getProficiency(),
                 saved.getYearsOfExperience()
         );
     }
+
+    // DELETE STUDENT SKILL
 
     @Transactional
     public void deleteStudentSkill(
@@ -205,19 +230,27 @@ public class SkillService {
         User user = userRepository
                 .findByEmailIgnoreCase(email)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User not found"));
+                        new ResourceNotFoundException(
+                                "User not found"
+                        ));
 
         StudentProfile student = studentProfileRepository
                 .findByUserId(user.getId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Student profile not found"));
+                        new ResourceNotFoundException(
+                                "Student profile not found"
+                        ));
 
         StudentSkill studentSkill = studentSkillRepository
                 .findById(studentSkillId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Student skill not found"));
+                        new ResourceNotFoundException(
+                                "Student skill not found"
+                        ));
 
-        if (!studentSkill.getStudent().getId().equals(student.getId())) {
+        if (!studentSkill.getStudent().getId()
+                .equals(student.getId())) {
+
             throw new IllegalArgumentException(
                     "You can delete only your own skills"
             );

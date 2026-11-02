@@ -1,0 +1,144 @@
+
+.student-interviews {
+  max-width: 1180px;
+  margin: 28px auto;
+  padding: 24px;
+  color: #e8edf8;
+  background: #111827;
+  border: 1px solid #263449;
+  border-radius: 18px;
+}
+
+.student-interviews-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.student-interviews-label {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.student-interviews-heading h2 {
+  margin: 7px 0;
+  font-size: 24px;
+}
+
+.student-interviews-heading p,
+.student-interviews-info {
+  color: #aab7cb;
+  font-size: 13px;
+}
+
+.student-interviews-heading button {
+  padding: 10px 16px;
+  color: white;
+  background: #2563eb;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.student-interviews-heading button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.student-interviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.student-interview-card,
+.student-interviews-empty {
+  padding: 20px;
+  background: #182235;
+  border: 1px solid #2d3b51;
+  border-radius: 14px;
+}
+
+.student-interview-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.student-interview-top h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.student-interview-top p {
+  color: #aab7cb;
+  font-size: 13px;
+}
+
+.student-interview-mode {
+  padding: 6px 9px;
+  color: #bfdbfe;
+  background: #263c59;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.student-interview-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 17px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.student-interview-detail strong,
+.student-interview-notes strong {
+  color: #93c5fd;
+}
+
+.student-interview-detail span,
+.student-interview-notes p {
+  color: #d1d9e6;
+}
+
+.student-interview-detail a {
+  color: #86efac;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.student-interview-notes {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #334155;
+  font-size: 13px;
+}
+
+.student-interviews-empty p {
+  color: #aab7cb;
+}
+
+.student-interviews-error {
+  padding: 12px;
+  color: #fecaca;
+  background: #431f2a;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .student-interviews {
+    padding: 16px;
+  }
+
+  .student-interviews-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

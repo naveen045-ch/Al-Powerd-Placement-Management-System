@@ -96,6 +96,161 @@ function scoreText(value) {
     : String(value);
 }
 
+
+// GATE CSE practice catalogue. The selected section/topic is sent through
+// the existing targetRole field so the existing backend request contract stays intact.
+const GATE_SECTIONS = [
+  {
+    id: "GENERAL_APTITUDE",
+    label: "General Aptitude",
+    topics: [
+      { id: "VERBAL_ABILITY", label: "Verbal Ability" },
+      { id: "QUANTITATIVE_APTITUDE", label: "Quantitative Aptitude" },
+      { id: "ANALYTICAL_REASONING", label: "Analytical Reasoning" },
+    ],
+  },
+  {
+    id: "ENGINEERING_MATHEMATICS",
+    label: "Engineering Mathematics",
+    topics: [
+      { id: "DISCRETE_MATHEMATICS", label: "Discrete Mathematics" },
+      { id: "LINEAR_ALGEBRA", label: "Linear Algebra" },
+      { id: "CALCULUS", label: "Calculus" },
+      { id: "PROBABILITY_STATISTICS", label: "Probability & Statistics" },
+      { id: "NUMERICAL_METHODS", label: "Numerical Methods" },
+    ],
+  },
+  {
+    id: "CORE_COMPUTER_SCIENCE",
+    label: "Core Computer Science",
+    topics: [
+      { id: "PROGRAMMING_DSA", label: "Programming & Data Structures" },
+      { id: "ALGORITHMS", label: "Algorithms" },
+      { id: "DBMS", label: "Database Management Systems" },
+      { id: "OPERATING_SYSTEMS", label: "Operating Systems" },
+      { id: "COMPUTER_NETWORKS", label: "Computer Networks" },
+      { id: "THEORY_OF_COMPUTATION", label: "Theory of Computation" },
+      { id: "COMPILER_DESIGN", label: "Compiler Design" },
+      { id: "COA", label: "Computer Organization & Architecture" },
+      { id: "DIGITAL_LOGIC", label: "Digital Logic" },
+    ],
+  },
+];
+
+function isGateSession(session) {
+  return String(session?.targetRole || "").toUpperCase().includes("GATE CSE");
+}
+
+function getSessionDisplayTitle(session) {
+  const target = String(session?.targetRole || "Mock interview");
+  if (!isGateSession(session)) return target;
+
+  return target
+    .replace(/^GATE CSE\s*\|\s*/i, "")
+    .replace(/\s*\|\s*/g, " · ")
+    .replace(/^FULL MOCK\b/i, "Full GATE CSE Mock Test");
+}
+
+function normalizeQuestionOptions(question) {
+  let raw =
+    question?.options ??
+    question?.choices ??
+    question?.answerOptions ??
+    question?.optionList;
+
+  if (raw == null && question) {
+    const optionKeys = [
+      ["A", "optionA"], ["B", "optionB"],
+      ["C", "optionC"], ["D", "optionD"],
+      ["A", "option1"], ["B", "option2"],
+      ["C", "option3"], ["D", "option4"],
+    ];
+    const detected = optionKeys
+      .filter(([, key]) => question[key] !== null && question[key] !== undefined && String(question[key]).trim())
+      .map(([code, key]) => ({ code, value: code, label: String(question[key]) }));
+    if (detected.length) raw = detected;
+  }
+
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = raw.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+    }
+  }
+
+  if (raw && !Array.isArray(raw) && typeof raw === "object") {
+    raw = Object.entries(raw).map(([key, value]) => ({ key, value }));
+  }
+
+  if (!Array.isArray(raw)) return [];
+
+  return raw.map((item, index) => {
+    const code = String(
+      item && typeof item === "object"
+        ? item.code ?? item.key ?? item.id ?? String.fromCharCode(65 + index)
+        : String.fromCharCode(65 + index)
+    );
+    const value = String(
+      item && typeof item === "object"
+        ? item.value ?? item.id ?? item.key ?? code
+        : item
+    );
+    const label = String(
+      item && typeof item === "object"
+        ? item.label ?? item.text ?? item.optionText ?? item.content ?? item.value ?? ""
+        : item
+    );
+
+    return { code, value, label };
+  }).filter((option) => option.label.trim());
+}
+
+function isMultiSelectQuestion(question) {
+  const type = String(
+    question?.questionType ?? question?.answerType ?? question?.type ?? ""
+  ).toUpperCase();
+  return (
+    question?.multiSelect === true ||
+    question?.multipleSelect === true ||
+    type.includes("MULTI") ||
+    type === "MSQ"
+  );
+}
+
+function getSelectedOptionValues(answer, options) {
+  const tokens = String(answer || "")
+    .split(/\|\||;|\n/)
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+
+  return options
+    .filter((option) => {
+      const code = option.code.toLowerCase();
+      const value = option.value.toLowerCase();
+      const label = option.label.toLowerCase();
+      return tokens.some((token) =>
+        token === value ||
+        token === code ||
+        token === label ||
+        token === `${code}. ${label}` ||
+        token === `${code}) ${label}`
+      );
+    })
+    .map((option) => option.value);
+}
+
+function getQuestionSection(question) {
+  return (
+    question?.section ||
+    question?.sectionName ||
+    question?.subject ||
+    question?.category ||
+    question?.topic ||
+    "General"
+  );
+}
+
 function AiMockInterview({ role }) {
   const normalizedRole = String(role || "").toUpperCase();
 
@@ -105,8 +260,12 @@ function AiMockInterview({ role }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
 
+  const [examMode, setExamMode] = useState("INTERVIEW");
   const [interviewType, setInterviewType] = useState("TECHNICAL");
   const [targetRole, setTargetRole] = useState("Java Backend Developer");
+  const [gateScope, setGateScope] = useState("SECTION");
+  const [gateSection, setGateSection] = useState("GENERAL_APTITUDE");
+  const [gateTopic, setGateTopic] = useState("VERBAL_ABILITY");
   const [totalQuestions, setTotalQuestions] = useState(5);
 
   const [starting, setStarting] = useState(false);
@@ -117,6 +276,7 @@ function AiMockInterview({ role }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const [answerDraft, setAnswerDraft] = useState("");
+  const [markedForReview, setMarkedForReview] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   const [pageError, setPageError] = useState("");
@@ -176,6 +336,78 @@ function AiMockInterview({ role }) {
     ? Math.round((answeredCount / questions.length) * 100)
     : 0;
 
+  const selectedGateSection = GATE_SECTIONS.find(
+    (section) => section.id === gateSection
+  ) || GATE_SECTIONS[0];
+
+  const selectedGateTopic = selectedGateSection.topics.find(
+    (topic) => topic.id === gateTopic
+  ) || selectedGateSection.topics[0];
+
+  const currentQuestionOptions = normalizeQuestionOptions(currentQuestion);
+  const currentQuestionIsMultiSelect = isMultiSelectQuestion(currentQuestion);
+  const currentQuestionSection = currentQuestion
+    ? getQuestionSection(currentQuestion)
+    : "";
+
+  const gateSectionCounts = useMemo(() => {
+    const counts = new Map();
+    questions.forEach((question) => {
+      const section = getQuestionSection(question);
+      counts.set(section, (counts.get(section) || 0) + 1);
+    });
+    return Array.from(counts.entries()).map(([label, count]) => ({ label, count }));
+  }, [questions]);
+
+  function goToQuestion(index) {
+    if (index < 0 || index >= questions.length) return;
+    setCurrentIndex(index);
+    setAnswerDraft(getAnswer(questions[index]));
+    setPageError("");
+  }
+
+  function toggleMarkForReview(index = currentIndex) {
+    setMarkedForReview((previous) => ({
+      ...previous,
+      [index]: !previous[index],
+    }));
+  }
+
+  function handleOptionSelect(option, isMulti) {
+    if (!isMulti) {
+      setAnswerDraft(option.value);
+      return;
+    }
+
+    const selected = new Set(
+      getSelectedOptionValues(answerDraft, currentQuestionOptions)
+    );
+
+    if (selected.has(option.value)) selected.delete(option.value);
+    else selected.add(option.value);
+
+    setAnswerDraft(Array.from(selected).join("||"));
+  }
+
+  function getAnswerForSubmission(question, draft) {
+    const options = normalizeQuestionOptions(question);
+    if (!options.length) return draft.trim();
+
+    const selectedValues = getSelectedOptionValues(draft, options);
+    return selectedValues
+      .map((value) => {
+        const option = options.find((item) => item.value === value);
+        return option ? `${option.code}. ${option.label}` : value;
+      })
+      .join("; ");
+  }
+
+  useEffect(() => {
+    if (currentQuestion) {
+      setAnswerDraft(getAnswer(currentQuestion));
+    }
+  }, [currentIndex, questions]);
+
   async function openSession(sessionId) {
     if (sessionId === null || sessionId === undefined) {
       setPageError("Interview session ID is missing.");
@@ -186,6 +418,7 @@ function AiMockInterview({ role }) {
     setPageError("");
     setSuccessMessage("");
     setAnswerDraft("");
+    setMarkedForReview({});
 
     try {
       const [sessionResult, questionsResult] =
@@ -247,8 +480,9 @@ function AiMockInterview({ role }) {
     event.preventDefault();
 
     const roleName = targetRole.trim();
+    const isGateRequest = examMode === "GATE_CSE";
 
-    if (!roleName) {
+    if (!isGateRequest && !roleName) {
       setPageError("Please enter your target role.");
       return;
     }
@@ -260,13 +494,25 @@ function AiMockInterview({ role }) {
     setQuestions([]);
     setCurrentIndex(0);
     setAnswerDraft("");
+    setMarkedForReview({});
+
+    const requestedTargetRole = isGateRequest
+      ? gateScope === "FULL"
+        ? "GATE CSE | FULL MOCK | GA+ENG MATH+CORE CS | VERBAL ABILITY | CBT MCQ/MSQ/NAT"
+        : `GATE CSE | ${selectedGateSection.label} | ${selectedGateTopic.label} | CBT MCQ/MSQ/NAT`
+      : roleName;
+    const requestedInterviewType = isGateRequest
+      ? gateScope === "FULL" || gateSection === "GENERAL_APTITUDE"
+        ? "MIXED"
+        : "TECHNICAL"
+      : interviewType;
 
     try {
       const response = await api.post(
         "/api/students/me/ai-interviews",
         {
-          interviewType,
-          targetRole: roleName,
+          interviewType: requestedInterviewType,
+          targetRole: requestedTargetRole,
           totalQuestions: Number(totalQuestions),
         }
       );
@@ -308,7 +554,7 @@ function AiMockInterview({ role }) {
 
     const sessionId = getSessionId(activeSession);
     const questionId = getQuestionId(currentQuestion);
-    const answer = answerDraft.trim();
+    const answer = getAnswerForSubmission(currentQuestion, answerDraft);
 
     if (questionId === null || questionId === undefined) {
       setPageError(
@@ -359,6 +605,7 @@ function AiMockInterview({ role }) {
     setQuestions([]);
     setCurrentIndex(0);
     setAnswerDraft("");
+    setMarkedForReview({});
     setPageError("");
     setSuccessMessage("");
   }
@@ -397,7 +644,7 @@ function AiMockInterview({ role }) {
           />
 
           <section
-            className="aim-modal"
+            className={`aim-modal ${isGateSession(activeSession) ? "aim-gate-modal" : ""}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="aim-title"
@@ -411,9 +658,15 @@ function AiMockInterview({ role }) {
                     PLACEMENTPRO AI
                   </span>
 
-                  <h2 id="aim-title">Mock Interview Studio</h2>
+                  <h2 id="aim-title">
+                    {isGateSession(activeSession) ? "GATE Exam Simulator" : "Mock Interview Studio"}
+                  </h2>
 
-                  <p>Practice, evaluate and improve.</p>
+                  <p>
+                    {isGateSession(activeSession)
+                      ? "Computer-based practice for GATE Computer Science."
+                      : "Practice, evaluate and improve."}
+                  </p>
                 </div>
               </div>
 
@@ -454,19 +707,19 @@ function AiMockInterview({ role }) {
                     <div className="aim-hero-copy">
                       <span className="aim-pill">
                         <span />
-                        AI-POWERED PRACTICE
+                        AI-POWERED PRACTICE · INTERVIEW + GATE
                       </span>
 
                       <h3>
-                        Get interview-ready,
+                        Prepare smarter,
                         <br />
-                        one question at a time.
+                        perform with confidence.
                       </h3>
 
                       <p>
-                        Start a personalized mock interview. Answer
-                        questions and review the score and feedback
-                        returned by your backend.
+                        Practice placement interviews or switch to a GATE-style
+                        Computer Science exam with section-wise questions,
+                        question navigation and answer review.
                       </p>
                     </div>
 
@@ -494,63 +747,126 @@ function AiMockInterview({ role }) {
                     </div>
 
                     <form
-                      className="aim-form"
+                      className="aim-form aim-setup-form"
                       onSubmit={handleStartInterview}
                     >
-                      <div className="aim-field">
-                        <label htmlFor="aim-interview-type">
-                          Interview type
-                        </label>
-
+                      <div className="aim-field aim-mode-field">
+                        <label htmlFor="aim-exam-mode">Preparation mode</label>
                         <select
-                          id="aim-interview-type"
-                          value={interviewType}
-                          onChange={(event) =>
-                            setInterviewType(event.target.value)
-                          }
+                          id="aim-exam-mode"
+                          value={examMode}
+                          onChange={(event) => setExamMode(event.target.value)}
                         >
-                          <option value="TECHNICAL">
-                            Technical interview
-                          </option>
-
-                          <option value="HR">
-                            HR interview
-                          </option>
-
-                          <option value="MIXED">
-                            Mixed interview
-                          </option>
+                          <option value="INTERVIEW">AI Placement Mock Interview</option>
+                          <option value="GATE_CSE">GATE Computer Science Exam</option>
                         </select>
                       </div>
 
+                      {examMode === "INTERVIEW" ? (
+                        <>
+                          <div className="aim-field">
+                            <label htmlFor="aim-interview-type">Interview type</label>
+                            <select
+                              id="aim-interview-type"
+                              value={interviewType}
+                              onChange={(event) => setInterviewType(event.target.value)}
+                            >
+                              <option value="TECHNICAL">Technical interview</option>
+                              <option value="HR">HR interview</option>
+                              <option value="MIXED">Mixed interview</option>
+                            </select>
+                          </div>
+
+                          <div className="aim-field">
+                            <label htmlFor="aim-target-role">Target job role</label>
+                            <input
+                              id="aim-target-role"
+                              value={targetRole}
+                              onChange={(event) => setTargetRole(event.target.value)}
+                              placeholder="e.g. Java Backend Developer"
+                              maxLength={120}
+                              required
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="aim-gate-intro">
+                            <span className="aim-gate-intro-mark">GATE</span>
+                            <div>
+                              <strong>Computer Science & Information Technology</strong>
+                              <p>Choose a full practice paper or prepare one section at a time.</p>
+                            </div>
+                          </div>
+
+                          <div className="aim-field">
+                            <label htmlFor="aim-gate-scope">Practice scope</label>
+                            <select
+                              id="aim-gate-scope"
+                              value={gateScope}
+                              onChange={(event) => setGateScope(event.target.value)}
+                            >
+                              <option value="SECTION">Section-wise practice</option>
+                              <option value="FULL">Full GATE CSE mock (all sections)</option>
+                            </select>
+                          </div>
+
+                          {gateScope === "SECTION" && (
+                            <>
+                              <div className="aim-field">
+                                <label htmlFor="aim-gate-section">GATE section</label>
+                                <select
+                                  id="aim-gate-section"
+                                  value={gateSection}
+                                  onChange={(event) => {
+                                    const nextSection = GATE_SECTIONS.find(
+                                      (section) => section.id === event.target.value
+                                    ) || GATE_SECTIONS[0];
+                                    setGateSection(nextSection.id);
+                                    setGateTopic(nextSection.topics[0].id);
+                                  }}
+                                >
+                                  {GATE_SECTIONS.map((section) => (
+                                    <option key={section.id} value={section.id}>
+                                      {section.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="aim-field">
+                                <label htmlFor="aim-gate-topic">Topic / question module</label>
+                                <select
+                                  id="aim-gate-topic"
+                                  value={gateTopic}
+                                  onChange={(event) => setGateTopic(event.target.value)}
+                                >
+                                  {selectedGateSection.topics.map((topic) => (
+                                    <option key={topic.id} value={topic.id}>
+                                      {topic.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {gateScope === "FULL" && (
+                            <div className="aim-gate-full-summary">
+                              <strong>Paper sections included</strong>
+                              <span>General Aptitude · Engineering Mathematics · Core Computer Science</span>
+                              <small>Verbal Ability is included under General Aptitude.</small>
+                            </div>
+                          )}
+                        </>
+                      )}
+
                       <div className="aim-field">
-                        <label htmlFor="aim-target-role">
-                          Target job role
-                        </label>
-
-                        <input
-                          id="aim-target-role"
-                          value={targetRole}
-                          onChange={(event) =>
-                            setTargetRole(event.target.value)
-                          }
-                          placeholder="e.g. Java Backend Developer"
-                          maxLength={120}
-                          required
-                        />
-                      </div>
-
-                      <div className="aim-field">
-                        <label htmlFor="aim-total-questions">
-                          Number of questions
-                        </label>
-
+                        <label htmlFor="aim-total-questions">Number of questions</label>
                         <select
                           id="aim-total-questions"
                           value={totalQuestions}
-                          onChange={(event) =>
-                            setTotalQuestions(Number(event.target.value))
-                          }
+                          onChange={(event) => setTotalQuestions(Number(event.target.value))}
                         >
                           <option value={3}>3 questions</option>
                           <option value={5}>5 questions</option>
@@ -565,8 +881,10 @@ function AiMockInterview({ role }) {
                         disabled={starting}
                       >
                         {starting
-                          ? "Preparing interview…"
-                          : "Start mock interview"}
+                          ? "Preparing questions…"
+                          : examMode === "GATE_CSE"
+                            ? "Start GATE practice"
+                            : "Start mock interview"}
                         <span>→</span>
                       </button>
                     </form>
@@ -636,8 +954,7 @@ function AiMockInterview({ role }) {
 
                               <div className="aim-session-info">
                                 <strong>
-                                  {session.targetRole ||
-                                    "Mock interview"}
+                                  {getSessionDisplayTitle(session)}
                                 </strong>
 
                                 <p>
@@ -729,6 +1046,20 @@ function AiMockInterview({ role }) {
                     </span>
                   </div>
 
+                  {isGateSession(activeSession) && (
+                    <section className="aim-gate-exam-strip">
+                      <div>
+                        <span className="aim-gate-exam-label">GATE CSE · COMPUTER-BASED PRACTICE</span>
+                        <strong>{getSessionDisplayTitle(activeSession)}</strong>
+                      </div>
+                      <div className="aim-gate-exam-stats">
+                        <span><strong>{questions.length}</strong> Questions</span>
+                        <span><strong>{answeredCount}</strong> Answered</span>
+                        <span><strong>{questions.length - answeredCount}</strong> Remaining</span>
+                      </div>
+                    </section>
+                  )}
+
                   <section className="aim-session-banner">
                     <div>
                       <span className="aim-eyebrow">
@@ -736,8 +1067,7 @@ function AiMockInterview({ role }) {
                       </span>
 
                       <h3>
-                        {activeSession.targetRole ||
-                          "Interview practice"}
+                        {getSessionDisplayTitle(activeSession)}
                       </h3>
 
                       <p>
@@ -785,6 +1115,8 @@ function AiMockInterview({ role }) {
                     />
                   </div>
 
+                  <div className={isGateSession(activeSession) ? "aim-gate-exam-layout" : "aim-standard-question-layout"}>
+                    <div className="aim-gate-question-column">
                   {completed ? (
                     <section className="aim-results">
                       <div className="aim-results-heading">
@@ -930,9 +1262,9 @@ function AiMockInterview({ role }) {
                         </span>
 
                         <div>
-                          {currentQuestion.topic && (
+                          {(currentQuestion.section || currentQuestion.subject || currentQuestion.category || currentQuestion.topic) && (
                             <span className="aim-topic">
-                              {currentQuestion.topic}
+                              {currentQuestion.section || currentQuestion.subject || currentQuestion.category || currentQuestion.topic}
                             </span>
                           )}
 
@@ -946,49 +1278,106 @@ function AiMockInterview({ role }) {
 
                       <h3>{currentQuestion.question}</h3>
 
+                      {isGateSession(activeSession) && (
+                        <div className="aim-gate-question-context">
+                          <span>{currentQuestionSection}</span>
+                          <span>{currentQuestionOptions.length ? (currentQuestionIsMultiSelect ? "MSQ · Multiple Select" : "MCQ · Single Select") : "Answer type from AI question"}</span>
+                        </div>
+                      )}
+
                       <p className="aim-answer-guidance">
-                        Explain your thinking clearly and use examples
-                        where relevant.
+                        {currentQuestionOptions.length
+                          ? currentQuestionIsMultiSelect
+                            ? "Select all options that apply, then submit your answer."
+                            : "Select the best answer, then submit your answer."
+                          : isGateSession(activeSession)
+                            ? "Work out the answer and enter it below. The AI evaluator will review your response."
+                            : "Explain your thinking clearly and use examples where relevant."}
                       </p>
 
                       <form
                         className="aim-answer-form"
                         onSubmit={handleSubmitAnswer}
                       >
-                        <label htmlFor="aim-answer">
-                          Your answer
-                        </label>
-
-                        <textarea
-                          id="aim-answer"
-                          value={answerDraft}
-                          onChange={(event) =>
-                            setAnswerDraft(event.target.value)
-                          }
-                          placeholder="Write your answer here..."
-                          rows={7}
-                          maxLength={12000}
-                          required
-                        />
+                        {currentQuestionOptions.length > 0 ? (
+                          <>
+                            <label>
+                              {currentQuestionIsMultiSelect ? "Select all correct options" : "Choose one option"}
+                            </label>
+                            <div className="aim-answer-options">
+                              {currentQuestionOptions.map((option) => {
+                                const selectedValues = getSelectedOptionValues(
+                                  answerDraft,
+                                  currentQuestionOptions
+                                );
+                                const selected = selectedValues.includes(option.value);
+                                return (
+                                  <label
+                                    className={`aim-option-card ${selected ? "is-selected" : ""}`}
+                                    key={`${option.code}-${option.value}`}
+                                  >
+                                    <input
+                                      type={currentQuestionIsMultiSelect ? "checkbox" : "radio"}
+                                      name={`aim-question-${getQuestionId(currentQuestion)}`}
+                                      checked={selected}
+                                      onChange={() => handleOptionSelect(option, currentQuestionIsMultiSelect)}
+                                    />
+                                    <span className="aim-option-code">{option.code}</span>
+                                    <span className="aim-option-label">{option.label}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <label htmlFor="aim-answer">
+                              {isGateSession(activeSession) ? "Enter your answer" : "Your answer"}
+                            </label>
+                            <textarea
+                              id="aim-answer"
+                              value={answerDraft}
+                              onChange={(event) => setAnswerDraft(event.target.value)}
+                              placeholder={isGateSession(activeSession) ? "Enter your numerical or written answer..." : "Write your answer here..."}
+                              rows={isGateSession(activeSession) ? 4 : 7}
+                              maxLength={12000}
+                              required
+                            />
+                          </>
+                        )}
 
                         <div className="aim-answer-footer">
                           <span>
-                            {answerDraft.length} / 12000 characters
+                            {currentQuestionOptions.length
+                              ? currentQuestionIsMultiSelect
+                                ? `${getSelectedOptionValues(answerDraft, currentQuestionOptions).length} options selected`
+                                : answerDraft ? "1 option selected" : "No option selected"
+                              : `${answerDraft.length} / 12000 characters`}
                           </span>
 
-                          <button
-                            type="submit"
-                            className="aim-primary-button"
-                            disabled={
-                              submitting ||
-                              !answerDraft.trim()
-                            }
-                          >
-                            {submitting
-                              ? "Evaluating answer…"
-                              : "Submit answer"}
-                            <span>→</span>
-                          </button>
+                          <div className="aim-answer-actions">
+                            {isGateSession(activeSession) && (
+                              <button
+                                type="button"
+                                className={`aim-review-toggle ${markedForReview[currentIndex] ? "is-marked" : ""}`}
+                                onClick={() => toggleMarkForReview(currentIndex)}
+                              >
+                                {markedForReview[currentIndex] ? "★ Marked for Review" : "☆ Mark for Review"}
+                              </button>
+                            )}
+                            <button
+                              type="submit"
+                              className="aim-primary-button"
+                              disabled={submitting || !answerDraft.trim()}
+                            >
+                              {submitting
+                                ? "Evaluating answer…"
+                                : isGateSession(activeSession)
+                                  ? "Save Answer"
+                                  : "Submit answer"}
+                              <span>→</span>
+                            </button>
+                          </div>
                         </div>
                       </form>
 
@@ -1002,6 +1391,86 @@ function AiMockInterview({ role }) {
                       </div>
                     </section>
                   )}
+                    </div>
+
+                    {isGateSession(activeSession) && questions.length > 0 && (
+                      <aside className="aim-question-palette">
+                        <div className="aim-palette-heading">
+                          <div>
+                            <span>GATE CSE</span>
+                            <h4>Question Palette</h4>
+                          </div>
+                          <strong>{answeredCount}/{questions.length}</strong>
+                        </div>
+
+                        {gateSectionCounts.length > 0 && (
+                          <div className="aim-palette-sections">
+                            <span className="aim-palette-subtitle">Question topics</span>
+                            {gateSectionCounts.map((section) => (
+                              <div key={section.label}>
+                                <span>{section.label}</span>
+                                <strong>{section.count}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="aim-palette-grid">
+                          {questions.map((question, index) => {
+                            const answered = isAnswered(question);
+                            const marked = Boolean(markedForReview[index]);
+                            const current = index === currentIndex;
+                            const classNames = [
+                              "aim-palette-button",
+                              answered ? "is-answered" : "is-unanswered",
+                              marked ? "is-marked" : "",
+                              current ? "is-current" : "",
+                            ].filter(Boolean).join(" ");
+
+                            return (
+                              <button
+                                type="button"
+                                key={getQuestionId(question) ?? index}
+                                className={classNames}
+                                onClick={() => goToQuestion(index)}
+                                aria-label={`Go to question ${index + 1}${answered ? ", answered" : ", not answered"}${marked ? ", marked for review" : ""}`}
+                                aria-current={current ? "step" : undefined}
+                              >
+                                {question.questionNumber ?? index + 1}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="aim-palette-legend">
+                          <span><i className="legend-answered" /> Answered</span>
+                          <span><i className="legend-unanswered" /> Not answered</span>
+                          <span><i className="legend-review" /> Marked for review</span>
+                        </div>
+
+                        {!completed && (
+                          <div className="aim-palette-navigation">
+                            <button
+                              type="button"
+                              className="aim-palette-prev"
+                              disabled={currentIndex <= 0}
+                              onClick={() => goToQuestion(currentIndex - 1)}
+                            >
+                              ← Previous
+                            </button>
+                            <button
+                              type="button"
+                              className="aim-palette-next"
+                              disabled={currentIndex >= questions.length - 1}
+                              onClick={() => goToQuestion(currentIndex + 1)}
+                            >
+                              Next →
+                            </button>
+                          </div>
+                        )}
+                      </aside>
+                    )}
+                  </div>
 
                   <footer className="aim-practice-footer">
                     <span>
@@ -1009,7 +1478,7 @@ function AiMockInterview({ role }) {
                     </span>
 
                     <span>
-                      Session ID: {getSessionId(activeSession) ?? "—"}
+                      {isGateSession(activeSession) ? "GATE CSE CBT Practice" : `Session ID: ${getSessionId(activeSession) ?? "—"}`}
                     </span>
                   </footer>
                 </div>

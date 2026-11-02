@@ -7,6 +7,8 @@ import NotificationCenter from "./components/NotificationCenter";
 import AiMockInterview from "./components/AiMockInterview";
 import ResumeAnalysis from "./components/ResumeAnalysis";
 import ResumeAnalysisHistory from "./components/ResumeAnalysisHistory";
+import StudentInterviews from "./components/StudentInterviews";
+
 
 function App() {
   const [step, setStep] = useState("login");
@@ -181,21 +183,14 @@ function App() {
  if (step === "success" && role) {
   return (
     <>
-      <Dashboard
-        role={role}
-        onLogout={handleLogout}
-      />
-
+      <Dashboard role={role} onLogout={handleLogout} />
+      <StudentInterviews role={role} />
       <NotificationCenter />
-
       <AiMockInterview role={role} />
-
       <ResumeAnalysis role={role} />
-
       <ResumeAnalysisHistory role={role} />
     </>
   );
-  
 }
   // Login and OTP verification screens
   return (

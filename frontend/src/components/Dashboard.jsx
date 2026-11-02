@@ -1,9 +1,12 @@
+
 import { useCallback, useEffect, useState } from "react";
 import api from "../api";
 import "./Dashboard.css";
 import RecruiterDashboard from "./RecruiterDashboard";
 import PlacementOfficerDashboard from "./PlacementOfficerDashboard";
 import AdminDashboard from "./AdminDashboard";
+import SkillGapAnalysis from "./SkillGapAnalysis";
+import MyProfile from "./MyProfile";
 
 const ROLE_CONFIG = {
   STUDENT: {
@@ -148,7 +151,6 @@ function getLatestRecommendation(responseData) {
 
   const records = usable.length ? usable : candidates;
 
-  // Prefer the newest recommendation when a timestamp exists.
   return [...records].sort((a, b) => {
     const dateA = Date.parse(a.generatedAt || a.createdAt || "") || 0;
     const dateB = Date.parse(b.generatedAt || b.createdAt || "") || 0;
@@ -187,7 +189,7 @@ function Dashboard({ role, onLogout }) {
   const [careerRecommendationError, setCareerRecommendationError] =
     useState("");
 
-  // Personalized job recommendations.
+  // Personalized job recommendations
   const [jobRecommendations, setJobRecommendations] = useState([]);
   const [jobRecommendationsLoading, setJobRecommendationsLoading] =
     useState(false);
@@ -196,7 +198,7 @@ function Dashboard({ role, onLogout }) {
 
   // Load jobs and the current student's applications.
   const loadDashboard = useCallback(async () => {
-    // Placement Officer and Admin use separate dashboards and APIs.
+    // Placement Officer and Admin have dedicated dashboards.
     if (
       normalizedRole === "PLACEMENT_OFFICER" ||
       normalizedRole === "ADMIN"
@@ -295,11 +297,9 @@ function Dashboard({ role, onLogout }) {
     }
   }, [normalizedRole]);
 
-  // Fetch personalized job recommendations from the backend.
+  // Fetch personalized job recommendations.
   const loadJobRecommendations = useCallback(async () => {
-    if (normalizedRole !== "STUDENT") {
-      return;
-    }
+    if (normalizedRole !== "STUDENT") return;
 
     setJobRecommendationsLoading(true);
     setJobRecommendationsError("");
@@ -318,6 +318,7 @@ function Dashboard({ role, onLogout }) {
       setJobRecommendations(recommendations);
     } catch (error) {
       setJobRecommendations([]);
+
       setJobRecommendationsError(
         getApiError(
           error,
@@ -329,7 +330,6 @@ function Dashboard({ role, onLogout }) {
     }
   }, [normalizedRole]);
 
-  // Load personalized recommendations when the student dashboard opens.
   useEffect(() => {
     if (normalizedRole === "STUDENT") {
       loadJobRecommendations();
@@ -462,7 +462,6 @@ function Dashboard({ role, onLogout }) {
   // Search jobs by title, company, location, description, or type.
   const filteredJobs = jobs.filter((job) => {
     const search = jobSearch.trim().toLowerCase();
-
     if (!search) return true;
 
     return [
@@ -478,7 +477,7 @@ function Dashboard({ role, onLogout }) {
     );
   });
 
-  // Role-based dashboard routing.
+  // Role-specific dashboard routing.
   if (normalizedRole === "RECRUITER") {
     return <RecruiterDashboard onLogout={onLogout} />;
   }
@@ -496,26 +495,29 @@ function Dashboard({ role, onLogout }) {
       <header className="dashboard-header">
         <div className="dashboard-brand">
           <div className="dashboard-brand-icon">P</div>
-
           <div>
             <h2>PlacementPro</h2>
             <p>CAREER MANAGEMENT SYSTEM</p>
           </div>
         </div>
 
-        <div className="dashboard-header-actions">
-          <span className="role-label">
-            {normalizedRole.replaceAll("_", " ")}
-          </span>
+       <div className="dashboard-header-actions">
 
-          <button
-            type="button"
-            className="dashboard-logout"
-            onClick={onLogout}
-          >
-            Sign out
-          </button>
-        </div>
+  <MyProfile role={normalizedRole} />
+
+  <span className="role-label">
+    {normalizedRole.replaceAll("_", " ")}
+  </span>
+
+  <button
+    type="button"
+    className="dashboard-logout"
+    onClick={onLogout}
+  >
+    Sign out
+  </button>
+
+</div>
       </header>
 
       <section className="dashboard-content">
@@ -524,7 +526,6 @@ function Dashboard({ role, onLogout }) {
             <span className="dashboard-eyebrow">
               YOUR CAREER. YOUR FUTURE.
             </span>
-
             <h1>{config.title}</h1>
             <p>{config.subtitle}</p>
           </div>
@@ -641,7 +642,6 @@ function Dashboard({ role, onLogout }) {
                     ? "No matching jobs"
                     : "No jobs available"}
                 </h3>
-
                 <p>
                   {jobSearch.trim()
                     ? "Try another job title, company, or location."
@@ -865,7 +865,7 @@ function Dashboard({ role, onLogout }) {
           </section>
         )}
 
-        {/* Personalized Job Recommendations */}
+        {/* PERSONALIZED JOB RECOMMENDATIONS */}
         {normalizedRole === "STUDENT" && (
           <section className="dashboard-section personalized-jobs-section">
             <div className="dashboard-section-heading">
@@ -968,11 +968,9 @@ function Dashboard({ role, onLogout }) {
                             </p>
 
                             <p className="personalized-job-meta">
-                              {recommendation.location ||
-                                "Location not specified"}
+                              {recommendation.location || "Location not specified"}
                               {" · "}
-                              {recommendation.jobType ||
-                                "Job type not specified"}
+                              {recommendation.jobType || "Job type not specified"}
                             </p>
                           </div>
 
@@ -1021,10 +1019,7 @@ function Dashboard({ role, onLogout }) {
 
                           <p>
                             <strong>Matched Skills:</strong>{" "}
-                            {displayText(
-                              recommendation.matchedSkills,
-                              "None listed"
-                            )}
+                            {displayText(recommendation.matchedSkills, "None listed")}
                           </p>
 
                           {Array.isArray(recommendation.missingSkills) &&
@@ -1116,7 +1111,12 @@ function Dashboard({ role, onLogout }) {
           </section>
         )}
 
-        {/* AI Career Recommendations */}
+        {/* AI SKILL GAP ANALYSIS */}
+        {normalizedRole === "STUDENT" && (
+          <SkillGapAnalysis onGenerated={loadCareerRecommendation} />
+        )}
+
+        {/* AI CAREER RECOMMENDATIONS */}
         {normalizedRole === "STUDENT" && (
           <section className="dashboard-section career-recommendation-section">
             <div className="dashboard-section-heading">
@@ -1169,7 +1169,6 @@ function Dashboard({ role, onLogout }) {
               <>
                 <div className="recommendation-target">
                   <span>YOUR TARGET ROLE</span>
-
                   <h3>
                     {displayText(
                       careerRecommendation.targetRole,
@@ -1249,7 +1248,6 @@ function Dashboard({ role, onLogout }) {
                 {careerRecommendation.overallAssessment && (
                   <div className="recommendation-assessment">
                     <h3>Overall Career Assessment</h3>
-
                     <p className="recommendation-text">
                       {displayText(
                         careerRecommendation.overallAssessment
@@ -1271,7 +1269,6 @@ function Dashboard({ role, onLogout }) {
                   ? "Recent Job Applications"
                   : "Available Jobs"}
               </h2>
-
               <p>
                 {normalizedRole === "STUDENT"
                   ? "Track the status of your submitted applications."
@@ -1322,7 +1319,6 @@ function Dashboard({ role, onLogout }) {
                         >
                           <td>{getJobTitle(application)}</td>
                           <td>{getCompanyName(application.job)}</td>
-
                           <td>
                             <span className="application-status">
                               {getStatus(application)}
@@ -1361,7 +1357,6 @@ function Dashboard({ role, onLogout }) {
                             job.name ||
                             "Untitled job"}
                         </h3>
-
                         <p>
                           {getCompanyName(job)}
                           {job.location ? ` · ${job.location}` : ""}
@@ -1396,7 +1391,6 @@ function Dashboard({ role, onLogout }) {
                 <span>Interview-related statuses</span>
                 <strong>{loading ? "—" : interviewCount}</strong>
               </div>
-
               <p>
                 Actual interview schedules can be connected to the
                 dedicated interview API in a later step.

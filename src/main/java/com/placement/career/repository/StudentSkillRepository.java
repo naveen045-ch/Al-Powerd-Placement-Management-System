@@ -1,3 +1,4 @@
+
 package com.placement.career.repository;
 
 import com.placement.career.entity.StudentSkill;
@@ -10,6 +11,11 @@ public interface StudentSkillRepository
         extends JpaRepository<StudentSkill, Long> {
 
     List<StudentSkill> findByStudentId(Long studentId);
+
+    boolean existsByStudentIdAndSkillId(
+            Long studentId,
+            Long skillId
+    );
 
     Optional<StudentSkill> findByStudentIdAndSkillId(
             Long studentId,

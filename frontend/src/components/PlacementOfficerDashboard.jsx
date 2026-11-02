@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 import "./PlacementOfficerDashboard.css";
+import MyProfile from "./MyProfile";
 
 const INITIAL_ERRORS = {
   dashboard: "",
@@ -829,7 +830,10 @@ function PlacementOfficerDashboard({ onLogout }) {
         </div>
 
         <div className="po-topbar-actions">
-          <span className="po-role-chip">
+
+  <MyProfile role="PLACEMENT_OFFICER" />
+
+  <span className="po-role-chip">
             <span className="po-online-dot" />
             Placement Officer
           </span>

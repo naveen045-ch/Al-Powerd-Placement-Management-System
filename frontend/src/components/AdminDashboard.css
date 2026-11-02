@@ -805,3 +805,239 @@
     height: 29px;
   }
 }
+/* ===============================
+   CREATE ACCOUNT PANEL
+================================ */
+
+.ad-create-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border: 1px solid #dce7fb;
+  border-radius: 9px;
+  color: #285fce;
+  background: #edf4ff;
+  font: 700 11px 'DM Sans',sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ad-create-toggle:hover {
+  border-color: #bcd1ff;
+  background: #e4eeff;
+}
+
+.ad-create-toggle > span {
+  font-size: 17px;
+  line-height: 10px;
+}
+
+.ad-create-panel {
+  margin-bottom: 20px;
+  padding: 23px;
+  border: 1px solid var(--ad-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 14px #1a355707;
+}
+
+.ad-create-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.ad-create-eyebrow {
+  color: #5880d6;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.ad-create-heading h2 {
+  margin: 7px 0 5px;
+  color: #203149;
+  font: 800 17px Manrope,sans-serif;
+}
+
+.ad-create-heading p {
+  margin: 0;
+  color: #8996a8;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ad-create-secure {
+  padding: 7px 10px;
+  border-radius: 100px;
+  color: #16835f;
+  background: #e8f8f0;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ad-create-form {
+  padding-top: 19px;
+}
+
+.ad-form-section-title {
+  margin-bottom: 12px;
+  color: #43566f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .4px;
+}
+
+.ad-form-section-spaced {
+  margin-top: 23px;
+}
+
+.ad-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.ad-form-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #596b81;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ad-form-field > span b {
+  color: #d24d68;
+}
+
+.ad-form-field input,
+.ad-form-field select {
+  width: 100%;
+  min-width: 0;
+  height: 39px;
+  padding: 0 11px;
+  border: 1px solid #e1e8f1;
+  border-radius: 8px;
+  outline: none;
+  color: #2b3d55;
+  background: #fcfdff;
+  font: 11px 'DM Sans',sans-serif;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ad-form-field input:focus,
+.ad-form-field select:focus {
+  border-color: #8eaff4;
+  box-shadow: 0 0 0 3px #326fe915;
+}
+
+.ad-form-field input::placeholder {
+  color: #a0aabb;
+}
+
+.ad-create-note {
+  margin-top: 18px;
+  padding: 11px 13px;
+  border: 1px solid #e4eaf4;
+  border-radius: 8px;
+  color: #728198;
+  background: #f8faff;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.ad-create-feedback {
+  margin-top: 17px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ad-create-feedback.is-error {
+  border: 1px solid #f5d3da;
+  color: #b43b55;
+  background: #fff5f7;
+}
+
+.ad-create-feedback.is-success {
+  border: 1px solid #ccefe0;
+  color: #16835f;
+  background: #f1fcf7;
+}
+
+.ad-create-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #edf1f6;
+}
+
+.ad-create-actions p {
+  margin: 0;
+  color: #8b98a9;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.ad-create-submit {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border: 1px solid #326fe9;
+  border-radius: 8px;
+  color: #fff;
+  background: #326fe9;
+  box-shadow: 0 5px 12px #326fe91c;
+  font: 700 10px 'DM Sans',sans-serif;
+  cursor: pointer;
+}
+
+.ad-create-submit:hover:not(:disabled) {
+  background: #245bd1;
+}
+
+.ad-create-submit:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 700px) {
+
+  .ad-heading-actions {
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+
+  .ad-create-panel {
+    padding: 17px;
+  }
+
+  .ad-create-heading {
+    flex-direction: column;
+  }
+
+  .ad-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ad-create-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ad-create-submit {
+    width: 100%;
+  }
+}

@@ -8,6 +8,13 @@ public record AiInterviewQuestionResponse(
         String difficulty,
         String answer,
         Double score,
-        String feedback
+        String feedback,
+        String section,
+        String questionType,
+        String options,
+        Double marks,
+        Double negativeMarks,
+        String correctAnswer,
+        String explanation
 ) {
 }

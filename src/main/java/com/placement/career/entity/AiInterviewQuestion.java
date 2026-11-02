@@ -1,7 +1,6 @@
 package com.placement.career.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,6 +36,32 @@ public class AiInterviewQuestion {
     @Column(length = 3000)
     private String feedback;
 
+    // GATE CBT fields. Existing HR/Technical interviews use questionType = TEXT.
+    @Column(length = 100)
+    private String section;
+
+    @Column(length = 20)
+    private String questionType = "TEXT";
+
+    @Column(columnDefinition = "TEXT")
+    private String optionsJson;
+
+    // Correct answer and explanation are returned to the student only after submission.
+    @Column(length = 1000)
+    private String correctAnswer;
+
+    @Column(columnDefinition = "TEXT")
+    private String explanation;
+
+    @Column
+    private Double marks;
+
+    @Column
+    private Double negativeMarks;
+
+    @Column
+    private Double answerTolerance;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -45,75 +70,57 @@ public class AiInterviewQuestion {
         createdAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public AiInterviewSession getSession() {
-        return session;
-    }
+    public AiInterviewSession getSession() { return session; }
+    public void setSession(AiInterviewSession session) { this.session = session; }
 
-    public void setSession(AiInterviewSession session) {
-        this.session = session;
-    }
+    public Integer getQuestionNumber() { return questionNumber; }
+    public void setQuestionNumber(Integer questionNumber) { this.questionNumber = questionNumber; }
 
-    public Integer getQuestionNumber() {
-        return questionNumber;
-    }
+    public String getQuestion() { return question; }
+    public void setQuestion(String question) { this.question = question; }
 
-    public void setQuestionNumber(Integer questionNumber) {
-        this.questionNumber = questionNumber;
-    }
+    public String getTopic() { return topic; }
+    public void setTopic(String topic) { this.topic = topic; }
 
-    public String getQuestion() {
-        return question;
-    }
+    public String getDifficulty() { return difficulty; }
+    public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
 
-    public void setQuestion(String question) {
-        this.question = question;
-    }
+    public String getAnswer() { return answer; }
+    public void setAnswer(String answer) { this.answer = answer; }
 
-    public String getTopic() {
-        return topic;
-    }
+    public Double getScore() { return score; }
+    public void setScore(Double score) { this.score = score; }
 
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
+    public String getFeedback() { return feedback; }
+    public void setFeedback(String feedback) { this.feedback = feedback; }
 
-    public String getDifficulty() {
-        return difficulty;
-    }
+    public String getSection() { return section; }
+    public void setSection(String section) { this.section = section; }
 
-    public void setDifficulty(String difficulty) {
-        this.difficulty = difficulty;
-    }
+    public String getQuestionType() { return questionType; }
+    public void setQuestionType(String questionType) { this.questionType = questionType; }
 
-    public String getAnswer() {
-        return answer;
-    }
+    public String getOptionsJson() { return optionsJson; }
+    public void setOptionsJson(String optionsJson) { this.optionsJson = optionsJson; }
 
-    public void setAnswer(String answer) {
-        this.answer = answer;
-    }
+    public String getCorrectAnswer() { return correctAnswer; }
+    public void setCorrectAnswer(String correctAnswer) { this.correctAnswer = correctAnswer; }
 
-    public Double getScore() {
-        return score;
-    }
+    public String getExplanation() { return explanation; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
 
-    public void setScore(Double score) {
-        this.score = score;
-    }
+    public Double getMarks() { return marks; }
+    public void setMarks(Double marks) { this.marks = marks; }
 
-    public String getFeedback() {
-        return feedback;
-    }
+    public Double getNegativeMarks() { return negativeMarks; }
+    public void setNegativeMarks(Double negativeMarks) { this.negativeMarks = negativeMarks; }
 
-    public void setFeedback(String feedback) {
-        this.feedback = feedback;
-    }
+    public Double getAnswerTolerance() { return answerTolerance; }
+    public void setAnswerTolerance(Double answerTolerance) { this.answerTolerance = answerTolerance; }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

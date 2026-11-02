@@ -23,7 +23,7 @@ public class Job {
     private RecruiterProfile recruiter;
 
     @Column(nullable = false, length = 150)
-    private String title;
+     private String title;
 
     @Column(nullable = false, length = 5000)
     private String description;

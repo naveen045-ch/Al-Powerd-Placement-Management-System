@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../api";
 import "./RecruiterDashboard.css";
+import MyProfile from "./MyProfile";
 
 const STATUS_OPTIONS = [
   "APPLIED",
@@ -885,9 +886,12 @@ function RecruiterDashboard({ onLogout }) {
         </div>
 
         <div className="recruiter-header-actions">
-          <span className="recruiter-role-label">
-            RECRUITER
-          </span>
+
+  <MyProfile role="RECRUITER" />
+
+  <span className="recruiter-role-label">
+    RECRUITER
+  </span>
 
           <button
             type="button"
