@@ -1,3 +1,4 @@
+
 package com.placement.career.service;
 
 import com.placement.career.dto.LoginOtpResponse;
@@ -10,15 +11,17 @@ import com.placement.career.repository.LoginOtpRateLimitRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -30,7 +33,9 @@ public class LoginOtpService {
     private final LoginOtpChallengeRepository repository;
     private final LoginOtpRateLimitRepository rateLimitRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
+
+    private final RestClient restClient = RestClient.create();
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.otp.expiry-minutes:5}")
@@ -39,19 +44,20 @@ public class LoginOtpService {
     @Value("${app.otp.max-attempts:5}")
     private int maxAttempts;
 
-    @Value("${spring.mail.username}")
+    @Value("${RESEND_API_KEY:}")
+    private String resendApiKey;
+
+    @Value("${RESEND_FROM_EMAIL:onboarding@resend.dev}")
     private String fromEmail;
 
     public LoginOtpService(
             LoginOtpChallengeRepository repository,
             LoginOtpRateLimitRepository rateLimitRepository,
-            PasswordEncoder passwordEncoder,
-            JavaMailSender mailSender
+            PasswordEncoder passwordEncoder
     ) {
         this.repository = repository;
         this.rateLimitRepository = rateLimitRepository;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
     }
 
     /**
@@ -66,17 +72,14 @@ public class LoginOtpService {
             );
         }
 
-        // Preserve the registered email as the recipient.
         String recipientEmail = email.trim();
 
-        // Use lowercase email for consistent rate-limit lookup.
         String rateLimitKey =
                 recipientEmail.toLowerCase(Locale.ROOT);
 
-        // Check rate limits before deleting an existing challenge.
         checkAndRecordSend(rateLimitKey);
 
-        // Invalidate previous OTP challenges for this account.
+        // Invalidate previous OTP challenges.
         repository.deleteByEmailIgnoreCase(recipientEmail);
 
         String otp = String.format(
@@ -87,6 +90,7 @@ public class LoginOtpService {
         Instant now = Instant.now();
 
         LoginOtpChallenge challenge = new LoginOtpChallenge();
+
         challenge.setId(UUID.randomUUID().toString());
         challenge.setEmail(recipientEmail);
         challenge.setOtpHash(passwordEncoder.encode(otp));
@@ -98,25 +102,42 @@ public class LoginOtpService {
         repository.save(challenge);
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
 
-            // Sender and recipient are different concepts.
-            message.setFrom(fromEmail);
-            message.setTo(recipientEmail);
+            if (resendApiKey == null || resendApiKey.isBlank()) {
+                throw new IllegalStateException(
+                        "RESEND_API_KEY is not configured."
+                );
+            }
 
-            message.setSubject(
-                    "Your Placement System Login OTP"
-            );
-
-            message.setText(
+            String emailText =
                     "Your login OTP is: " + otp
                             + "\n\nThis OTP expires in "
                             + expiryMinutes
                             + " minutes."
-                            + "\nDo not share this code with anyone."
+                            + "\nDo not share this code with anyone.";
+
+            Map<String, Object> requestBody = Map.of(
+                    "from", fromEmail,
+                    "to", List.of(recipientEmail),
+                    "subject", "Your Placement System Login OTP",
+                    "text", emailText
             );
 
-            mailSender.send(message);
+            restClient.post()
+                    .uri("https://api.resend.com/emails")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(
+                            "Authorization",
+                            "Bearer " + resendApiKey
+                    )
+                    .body(requestBody)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info(
+                    "Login OTP email successfully sent. Challenge ID: {}",
+                    challenge.getId()
+            );
 
         } catch (RuntimeException ex) {
 
@@ -130,7 +151,7 @@ public class LoginOtpService {
 
             throw new IllegalStateException(
                     "Unable to send login OTP email. "
-                            + "Check your email configuration.",
+                            + "Check Resend configuration.",
                     ex
             );
         }
@@ -152,6 +173,7 @@ public class LoginOtpService {
             String challengeId,
             String otp
     ) {
+
         LoginOtpChallenge challenge =
                 repository.findById(challengeId).orElse(null);
 
@@ -213,6 +235,7 @@ public class LoginOtpService {
                         );
 
         if (!Instant.now().isBefore(challenge.getExpiresAt())) {
+
             repository.delete(challenge);
 
             throw new IllegalArgumentException(
@@ -220,8 +243,7 @@ public class LoginOtpService {
             );
         }
 
-        // sendLoginOtp uses the same registered recipient and
-        // applies the rate limit to this email.
+        // Uses the same registered recipient and rate limits.
         return sendLoginOtp(challenge.getEmail());
     }
 
@@ -264,6 +286,7 @@ public class LoginOtpService {
         if (now.isBefore(
                 limit.getLastSentAt().plusSeconds(60)
         )) {
+
             throw new OtpRateLimitException(
                     "Please wait 60 seconds before requesting another OTP."
             );
@@ -271,6 +294,7 @@ public class LoginOtpService {
 
         // Maximum three sends in the 15-minute window.
         if (limit.getSendCount() >= 3) {
+
             throw new OtpRateLimitException(
                     "OTP limit reached. Try again after 15 minutes."
             );
