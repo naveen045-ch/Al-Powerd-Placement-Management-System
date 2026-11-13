@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 import "./AdminDashboard.css";
@@ -152,6 +153,31 @@ function AdminDashboard({ onLogout }) {
   const [changingStatusId, setChangingStatusId] = useState(null);
 
   const [lastUpdated, setLastUpdated] = useState("");
+
+  // Admin account creation form
+  const emptyCreateForm = {
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "STUDENT",
+    college: "",
+    branch: "",
+    semester: "",
+    cgpa: "",
+    graduationYear: "",
+    companyName: "",
+    industry: "",
+    website: "",
+    location: "",
+    designation: "",
+  };
+
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState(emptyCreateForm);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createMessage, setCreateMessage] = useState("");
 
   const currentEmail = useMemo(
     () => getCurrentEmailFromToken(),
@@ -502,6 +528,100 @@ function AdminDashboard({ onLogout }) {
     }
   }
 
+  // Handle changes in the create-account form.
+  function handleCreateFormChange(event) {
+    const { name, value } = event.target;
+
+    setCreateForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setCreateError("");
+    setCreateMessage("");
+  }
+
+  // Create a Student, Recruiter, or Placement Officer account.
+  async function handleCreateUser(event) {
+    event.preventDefault();
+
+    if (creatingUser) return;
+
+    setCreatingUser(true);
+    setCreateError("");
+    setCreateMessage("");
+
+    const payload = {
+      fullName: createForm.fullName.trim(),
+      email: createForm.email.trim(),
+      phone: createForm.phone.trim() || null,
+      password: createForm.password,
+      role: createForm.role,
+    };
+
+    if (createForm.role === "STUDENT") {
+      payload.college = createForm.college.trim() || null;
+      payload.branch = createForm.branch.trim() || null;
+      payload.semester = createForm.semester
+        ? Number(createForm.semester)
+        : null;
+      payload.cgpa = createForm.cgpa
+        ? Number(createForm.cgpa)
+        : null;
+      payload.graduationYear = createForm.graduationYear
+        ? Number(createForm.graduationYear)
+        : null;
+    }
+
+    if (createForm.role === "RECRUITER") {
+      payload.companyName = createForm.companyName.trim();
+      payload.industry = createForm.industry.trim() || null;
+      payload.website = createForm.website.trim() || null;
+      payload.location = createForm.location.trim() || null;
+      payload.designation = createForm.designation.trim() || null;
+    }
+
+    try {
+      const response = await api.post("/api/admin/users", payload);
+      const createdUser = response.data;
+
+      if (createdUser && typeof createdUser === "object") {
+        setUsers((previous) => {
+          const withoutDuplicate = previous.filter(
+            (user) => user.userId !== createdUser.userId
+          );
+          return [createdUser, ...withoutDuplicate];
+        });
+
+        if (createdUser.userId != null) {
+          setRoleDrafts((previous) => ({
+            ...previous,
+            [createdUser.userId]: createForm.role,
+          }));
+        }
+      }
+
+      setCreateMessage(
+        `${prettifyRole(createForm.role)} account created successfully.`
+      );
+
+      setCreateForm({ ...emptyCreateForm });
+      setActiveFilter("ALL");
+      setSearch("");
+
+      await refreshSummaryOnly();
+    } catch (error) {
+      setCreateError(
+        getApiError(
+          error,
+          "Unable to create this account. Please try again."
+        )
+      );
+    } finally {
+      setCreatingUser(false);
+    }
+  }
+
   return (
     <main className="ad-page">
       <header className="ad-topbar">
@@ -546,6 +666,21 @@ function AdminDashboard({ onLogout }) {
           </div>
 
           <div className="ad-heading-actions">
+            <button
+              type="button"
+              className="ad-create-toggle"
+              onClick={() => {
+                setShowCreateForm((previous) => !previous);
+                setCreateError("");
+                setCreateMessage("");
+              }}
+              aria-expanded={showCreateForm}
+              aria-controls="ad-create-user-panel"
+            >
+              <span aria-hidden="true">＋</span>
+              {showCreateForm ? "Close form" : "Create account"}
+            </button>
+
             {lastUpdated && (
               <span className="ad-updated">
                 Updated {lastUpdated}
@@ -640,6 +775,324 @@ function AdminDashboard({ onLogout }) {
             tone="green"
           />
         </section>
+
+        {/* CREATE ACCOUNT FORM */}
+
+        {showCreateForm && (
+          <section
+            className="ad-create-panel"
+            id="ad-create-user-panel"
+            aria-labelledby="ad-create-user-title"
+          >
+            <div className="ad-create-heading">
+              <div>
+                <span className="ad-create-eyebrow">
+                  ACCOUNT PROVISIONING
+                </span>
+
+                <h2 id="ad-create-user-title">
+                  Create a new account
+                </h2>
+
+                <p>
+                  Add a student, recruiter, or placement officer to PlacementPro.
+                </p>
+              </div>
+
+              <span className="ad-create-secure">
+                Admin access only
+              </span>
+            </div>
+
+            <form
+              className="ad-create-form"
+              onSubmit={handleCreateUser}
+            >
+              <div className="ad-form-section-title">
+                Basic information
+              </div>
+
+              <div className="ad-form-grid">
+                <label className="ad-form-field">
+                  <span>Full name <b>*</b></span>
+
+                  <input
+                    name="fullName"
+                    value={createForm.fullName}
+                    onChange={handleCreateFormChange}
+                    placeholder="Enter full name"
+                    maxLength={120}
+                    autoComplete="name"
+                    required
+                  />
+                </label>
+
+                <label className="ad-form-field">
+                  <span>Email address <b>*</b></span>
+
+                  <input
+                    type="email"
+                    name="email"
+                    value={createForm.email}
+                    onChange={handleCreateFormChange}
+                    placeholder="name@example.com"
+                    maxLength={180}
+                    autoComplete="email"
+                    required
+                  />
+                </label>
+
+                <label className="ad-form-field">
+                  <span>Phone number</span>
+
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={createForm.phone}
+                    onChange={handleCreateFormChange}
+                    placeholder="Enter phone number"
+                    maxLength={30}
+                    autoComplete="tel"
+                  />
+                </label>
+
+                <label className="ad-form-field">
+                  <span>Temporary password <b>*</b></span>
+
+                  <input
+                    type="password"
+                    name="password"
+                    value={createForm.password}
+                    onChange={handleCreateFormChange}
+                    placeholder="At least 8 characters"
+                    minLength={8}
+                    maxLength={64}
+                    autoComplete="new-password"
+                    required
+                  />
+                </label>
+
+                <label className="ad-form-field">
+                  <span>Account type <b>*</b></span>
+
+                  <select
+                    name="role"
+                    value={createForm.role}
+                    onChange={handleCreateFormChange}
+                    required
+                  >
+                    <option value="STUDENT">Student</option>
+                    <option value="RECRUITER">Recruiter</option>
+                    <option value="PLACEMENT_OFFICER">
+                      Placement Officer
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              {/* STUDENT DETAILS */}
+
+              {createForm.role === "STUDENT" && (
+                <>
+                  <div className="ad-form-section-title ad-form-section-spaced">
+                    Student profile
+                  </div>
+
+                  <div className="ad-form-grid">
+                    <label className="ad-form-field">
+                      <span>College</span>
+
+                      <input
+                        name="college"
+                        value={createForm.college}
+                        onChange={handleCreateFormChange}
+                        placeholder="College / institute name"
+                        maxLength={255}
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Branch</span>
+
+                      <input
+                        name="branch"
+                        value={createForm.branch}
+                        onChange={handleCreateFormChange}
+                        placeholder="e.g. Computer Science"
+                        maxLength={100}
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Semester</span>
+
+                      <input
+                        type="number"
+                        name="semester"
+                        value={createForm.semester}
+                        onChange={handleCreateFormChange}
+                        placeholder="1–8"
+                        min={1}
+                        max={8}
+                        step={1}
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>CGPA</span>
+
+                      <input
+                        type="number"
+                        name="cgpa"
+                        value={createForm.cgpa}
+                        onChange={handleCreateFormChange}
+                        placeholder="e.g. 8.2"
+                        min={0}
+                        max={10}
+                        step="0.01"
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Graduation year</span>
+
+                      <input
+                        type="number"
+                        name="graduationYear"
+                        value={createForm.graduationYear}
+                        onChange={handleCreateFormChange}
+                        placeholder="e.g. 2027"
+                        min={2000}
+                        max={2100}
+                        step={1}
+                      />
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* RECRUITER DETAILS */}
+
+              {createForm.role === "RECRUITER" && (
+                <>
+                  <div className="ad-form-section-title ad-form-section-spaced">
+                    Recruiter and company details
+                  </div>
+
+                  <div className="ad-form-grid">
+                    <label className="ad-form-field">
+                      <span>Company name <b>*</b></span>
+
+                      <input
+                        name="companyName"
+                        value={createForm.companyName}
+                        onChange={handleCreateFormChange}
+                        placeholder="Registered company name"
+                        maxLength={255}
+                        required
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Designation</span>
+
+                      <input
+                        name="designation"
+                        value={createForm.designation}
+                        onChange={handleCreateFormChange}
+                        placeholder="e.g. HR Manager"
+                        maxLength={120}
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Industry</span>
+
+                      <input
+                        name="industry"
+                        value={createForm.industry}
+                        onChange={handleCreateFormChange}
+                        placeholder="e.g. IT / Software"
+                        maxLength={120}
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Company website</span>
+
+                      <input
+                        type="url"
+                        name="website"
+                        value={createForm.website}
+                        onChange={handleCreateFormChange}
+                        placeholder="https://example.com"
+                        maxLength={255}
+                      />
+                    </label>
+
+                    <label className="ad-form-field">
+                      <span>Company location</span>
+
+                      <input
+                        name="location"
+                        value={createForm.location}
+                        onChange={handleCreateFormChange}
+                        placeholder="City, state"
+                        maxLength={255}
+                      />
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* PLACEMENT OFFICER DETAILS */}
+
+              {createForm.role === "PLACEMENT_OFFICER" && (
+                <div className="ad-create-note">
+                  Placement Officer accounts currently use the common
+                  account details only. The supplied backend model does not
+                  include a separate placement-officer profile entity.
+                </div>
+              )}
+
+              {createError && (
+                <div
+                  className="ad-create-feedback is-error"
+                  role="alert"
+                >
+                  {createError}
+                </div>
+              )}
+
+              {createMessage && (
+                <div
+                  className="ad-create-feedback is-success"
+                  role="status"
+                >
+                  {createMessage}
+                </div>
+              )}
+
+              <div className="ad-create-actions">
+                <p>
+                  The account will be enabled. Its password is encoded by the backend.
+                </p>
+
+                <button
+                  type="submit"
+                  className="ad-create-submit"
+                  disabled={creatingUser}
+                >
+                  {creatingUser
+                    ? "Creating account…"
+                    : "Create account"}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {/* USER MANAGEMENT */}
 
         <section className="ad-users-panel">
           <div className="ad-panel-heading">
