@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 import "./AdminDashboard.css";
+import MyProfile from "./MyProfile";
 
 const ROLE_FILTERS = [
   { id: "ALL", label: "All users" },
@@ -635,6 +636,9 @@ function AdminDashboard({ onLogout }) {
         </div>
 
         <div className="ad-top-actions">
+
+          <MyProfile role="ADMIN" />
+
           <span className="ad-admin-label">
             <span />
             System administrator
