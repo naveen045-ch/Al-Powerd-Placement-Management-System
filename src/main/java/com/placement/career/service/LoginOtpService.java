@@ -47,7 +47,7 @@ public class LoginOtpService {
     @Value("${RESEND_API_KEY:}")
     private String resendApiKey;
 
-    @Value("${RESEND_FROM_EMAIL:onboarding@resend.dev}")
+    @Value("${RESEND_FROM_EMAIL:noreply@send.gyanx.site}")
     private String fromEmail;
 
     public LoginOtpService(
