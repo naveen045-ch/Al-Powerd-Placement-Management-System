@@ -180,6 +180,17 @@ function AdminDashboard({ onLogout }) {
   const [createError, setCreateError] = useState("");
   const [createMessage, setCreateMessage] = useState("");
 
+  // Shared skill catalog management
+  const [skills, setSkills] = useState([]);
+  const [skillForm, setSkillForm] = useState({
+    name: "",
+    category: "PROGRAMMING",
+  });
+  const [loadingSkills, setLoadingSkills] = useState(false);
+  const [creatingSkill, setCreatingSkill] = useState(false);
+  const [skillError, setSkillError] = useState("");
+  const [skillMessage, setSkillMessage] = useState("");
+
   const currentEmail = useMemo(
     () => getCurrentEmailFromToken(),
     []
@@ -256,6 +267,77 @@ function AdminDashboard({ onLogout }) {
   useEffect(() => {
     loadAdminDashboard();
   }, [loadAdminDashboard]);
+
+  const loadSkillCatalog = useCallback(async () => {
+    setLoadingSkills(true);
+    setSkillError("");
+
+    try {
+      const response = await api.get("/api/skills");
+      const data = normalizeList(response.data);
+      setSkills(
+        [...data].sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || ""))
+        )
+      );
+    } catch (error) {
+      setSkillError(getApiError(error, "Could not load the skill catalog."));
+    } finally {
+      setLoadingSkills(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSkillCatalog();
+  }, [loadSkillCatalog]);
+
+  function handleSkillFormChange(event) {
+    const { name, value } = event.target;
+    setSkillForm((previous) => ({ ...previous, [name]: value }));
+    setSkillError("");
+    setSkillMessage("");
+  }
+
+  async function handleCreateSkill(event) {
+    event.preventDefault();
+    if (creatingSkill) return;
+
+    const name = skillForm.name.trim();
+    if (!name) {
+      setSkillError("Please enter a skill name.");
+      return;
+    }
+
+    setCreatingSkill(true);
+    setSkillError("");
+    setSkillMessage("");
+
+    try {
+      const response = await api.post("/api/skills", {
+        name,
+        category: skillForm.category,
+      });
+      const createdSkill = response.data;
+
+      setSkills((previous) => {
+        const withoutDuplicate = previous.filter(
+          (skill) => String(skill.id) !== String(createdSkill.id)
+        );
+        return [...withoutDuplicate, createdSkill].sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || ""))
+        );
+      });
+
+      setSkillForm({ name: "", category: "PROGRAMMING" });
+      setSkillMessage(`${createdSkill.name} added to the shared skill catalog.`);
+    } catch (error) {
+      setSkillError(
+        getApiError(error, "Unable to create this skill. It may already exist.")
+      );
+    } finally {
+      setCreatingSkill(false);
+    }
+  }
 
   // Calculate fallback counts from the user list.
   const counts = useMemo(() => {
@@ -778,6 +860,115 @@ function AdminDashboard({ onLogout }) {
             icon="✓"
             tone="green"
           />
+        </section>
+
+        {/* SHARED SKILL CATALOG */}
+
+        <section className="ad-skills-panel" aria-labelledby="ad-skills-title">
+          <div className="ad-panel-heading">
+            <div>
+              <h2 id="ad-skills-title">Shared Skill Catalog</h2>
+              <p>
+                Add skills that become available to students and recruiters
+                across the placement platform.
+              </p>
+            </div>
+            <span className="ad-record-count">
+              {skills.length} skills
+            </span>
+          </div>
+
+          <form className="ad-skill-create-form" onSubmit={handleCreateSkill}>
+            <label className="ad-form-field">
+              <span>Skill name <b>*</b></span>
+              <input
+                name="name"
+                value={skillForm.name}
+                onChange={handleSkillFormChange}
+                placeholder="e.g. Spring Boot"
+                maxLength={100}
+                required
+              />
+            </label>
+
+            <label className="ad-form-field">
+              <span>Category <b>*</b></span>
+              <select
+                name="category"
+                value={skillForm.category}
+                onChange={handleSkillFormChange}
+                required
+              >
+                {[
+                  "PROGRAMMING",
+                  "BACKEND",
+                  "FRONTEND",
+                  "DATABASE",
+                  "DEVOPS",
+                  "CLOUD",
+                  "DATA",
+                  "TESTING",
+                  "SOFT_SKILL",
+                  "OTHER",
+                ].map((category) => (
+                  <option key={category} value={category}>
+                    {prettifyRole(category)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="submit"
+              className="ad-create-submit"
+              disabled={creatingSkill}
+            >
+              {creatingSkill ? "Adding skill…" : "＋ Add skill"}
+            </button>
+          </form>
+
+          {skillError && (
+            <div className="ad-create-feedback is-error" role="alert">
+              {skillError}
+            </div>
+          )}
+
+          {skillMessage && (
+            <div className="ad-create-feedback is-success" role="status">
+              {skillMessage}
+            </div>
+          )}
+
+          <div className="ad-skill-catalog-list">
+            {loadingSkills ? (
+              <p className="ad-skill-catalog-state">Loading skill catalog…</p>
+            ) : skills.length === 0 ? (
+              <p className="ad-skill-catalog-state">
+                No skills found in the catalog.
+              </p>
+            ) : (
+              skills.map((skill) => (
+                <span className="ad-skill-catalog-chip" key={skill.id}>
+                  <strong>{skill.name}</strong>
+                  <small>{prettifyRole(skill.category)}</small>
+                </span>
+              ))
+            )}
+          </div>
+
+          <div className="ad-skill-catalog-footer">
+            <span>
+              {loadingSkills ? "Refreshing…" : "Catalog status"}
+            </span>
+            <button
+              type="button"
+              className="ad-refresh"
+              onClick={loadSkillCatalog}
+              disabled={loadingSkills}
+            >
+              ↻ Refresh skills
+            </button>
+          </div>
         </section>
 
         {/* CREATE ACCOUNT FORM */}

@@ -369,3 +369,34 @@
     font-size: 22px;
   }
 }
+.mp-create-skill {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px dashed #d7e1ef;
+  border-radius: 10px;
+  background: #fbfcff;
+}
+
+.mp-create-skill h4 {
+  margin: 0;
+  color: #344a64;
+  font-size: 11px;
+}
+
+.mp-create-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mp-create-skill > .mp-primary {
+  justify-self: start;
+}
+
+@media (max-width: 700px) {
+  .mp-create-skill-grid {
+    grid-template-columns: 1fr;
+  }
+}

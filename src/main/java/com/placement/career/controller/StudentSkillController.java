@@ -62,4 +62,14 @@ public class StudentSkillController {
                 studentSkillId
         );
     }
+    @PostMapping("/create")
+    public StudentSkillResponse createAndAddSkill(
+            Authentication authentication,
+            @Valid @RequestBody StudentSkillCreateRequest request) {
+
+        return skillService.createAndAddStudentSkill(
+                authentication.getName(),
+                request
+        );
+    }
 }

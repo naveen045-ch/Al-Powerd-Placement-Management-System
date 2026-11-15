@@ -130,6 +130,58 @@ public class SkillService {
                 saved.getYearsOfExperience()
         );
     }
+    // CREATE NEW SKILL AND ADD TO STUDENT PROFILE
+
+    @Transactional
+    public StudentSkillResponse createAndAddStudentSkill(
+            String email,
+            StudentSkillCreateRequest request) {
+
+        User user = userRepository
+                .findByEmailIgnoreCase(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
+
+        StudentProfile student = studentProfileRepository
+                .findByUserId(user.getId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Student profile not found"));
+
+        // Find existing skill or create a new global skill
+        Skill skill = skillRepository
+                .findByNameIgnoreCase(request.name().trim())
+                .orElseGet(() -> {
+                    Skill newSkill = new Skill();
+                    newSkill.setName(request.name().trim());
+                    newSkill.setCategory(request.category());
+                    return skillRepository.save(newSkill);
+                });
+
+        // Prevent duplicate student skill
+        if (studentSkillRepository
+                .findByStudentIdAndSkillId(student.getId(), skill.getId())
+                .isPresent()) {
+            throw new IllegalArgumentException(
+                    "Student already has this skill");
+        }
+
+        StudentSkill studentSkill = new StudentSkill();
+        studentSkill.setStudent(student);
+        studentSkill.setSkill(skill);
+        studentSkill.setProficiency(request.proficiency());
+        studentSkill.setYearsOfExperience(request.yearsOfExperience());
+
+        StudentSkill saved = studentSkillRepository.save(studentSkill);
+
+        return new StudentSkillResponse(
+                saved.getId(),
+                skill.getId(),
+                skill.getName(),
+                skill.getCategory(),
+                saved.getProficiency(),
+                saved.getYearsOfExperience()
+        );
+    }
 
     // GET MY SKILLS
 

@@ -114,6 +114,13 @@ export default function MyProfile({ role }) {
     yearsOfExperience: "0",
   });
 
+  const [newSkillDetails, setNewSkillDetails] = useState({
+    name: "",
+    category: "PROGRAMMING",
+    proficiency: "BEGINNER",
+    yearsOfExperience: "0",
+  });
+
   const loadProfile = useCallback(async () => {
     setLoading(true);
     setProfileError("");
@@ -129,8 +136,8 @@ export default function MyProfile({ role }) {
 
       if (isStudent) {
         const [skillsResult, catalogResult] = await Promise.allSettled([
-          api.get("/api/users/me/skills"),
-          api.get("/api/users/me/skills/catalog"),
+          api.get("/api/students/me/skills"),
+          api.get("/api/skills"),
         ]);
 
         if (skillsResult.status === "fulfilled") {
@@ -249,7 +256,7 @@ export default function MyProfile({ role }) {
     setSkillMessage("");
 
     try {
-      const response = await api.post("/api/users/me/skills", {
+      const response = await api.post("/api/students/me/skills", {
         skillId: Number(newSkill.skillId),
         proficiency: newSkill.proficiency,
         yearsOfExperience: Number(newSkill.yearsOfExperience),
@@ -280,6 +287,74 @@ export default function MyProfile({ role }) {
     }
   }
 
+  function handleNewSkillDetailsChange(event) {
+    const { name, value } = event.target;
+    setNewSkillDetails((previous) => ({ ...previous, [name]: value }));
+    setSkillError("");
+    setSkillMessage("");
+  }
+
+  async function handleCreateAndAddSkill(event) {
+    event.preventDefault();
+    if (savingSkill) return;
+
+    const skillName = newSkillDetails.name.trim();
+    if (!skillName) {
+      setSkillError("Please enter a skill name.");
+      return;
+    }
+
+    setSavingSkill(true);
+    setSkillError("");
+    setSkillMessage("");
+
+    try {
+      const response = await api.post("/api/students/me/skills/create", {
+        name: skillName,
+        category: newSkillDetails.category,
+        proficiency: newSkillDetails.proficiency,
+        yearsOfExperience: Number(newSkillDetails.yearsOfExperience),
+      });
+
+      const added = response.data;
+      setSkills((previous) => [
+        ...previous.filter((item) => item.id !== added.id),
+        added,
+      ]);
+      setSkillDrafts((previous) => ({
+        ...previous,
+        [added.id]: {
+          proficiency: added.proficiency,
+          yearsOfExperience: added.yearsOfExperience,
+        },
+      }));
+
+      setSkillCatalog((previous) => {
+        const exists = previous.some(
+          (item) => String(item.id) === String(added.skillId)
+        );
+        if (exists) return previous;
+        return [...previous, {
+          id: added.skillId,
+          name: added.skillName,
+          category: added.category,
+        }].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      });
+
+      setNewSkillDetails({
+        name: "",
+        category: "PROGRAMMING",
+        proficiency: "BEGINNER",
+        yearsOfExperience: "0",
+      });
+      setSkillMessage(`${added.skillName} created and added to your profile.`);
+    } catch (error) {
+      setSkillError(getError(error, "Unable to create and add this skill."));
+    } finally {
+      setSavingSkill(false);
+    }
+  }
+
   function handleSkillDraftChange(skillId, field, value) {
     setSkillDrafts((previous) => ({
       ...previous,
@@ -300,7 +375,7 @@ export default function MyProfile({ role }) {
 
     try {
       const response = await api.put(
-        `/api/users/me/skills/${skill.id}`,
+        `/api/students/me/skills/${skill.id}`,
         {
           proficiency: draft.proficiency,
           yearsOfExperience: Number(draft.yearsOfExperience),
@@ -330,7 +405,7 @@ export default function MyProfile({ role }) {
     setSkillMessage("");
 
     try {
-      await api.delete(`/api/users/me/skills/${skill.id}`);
+      await api.delete(`/api/students/me/skills/${skill.id}`);
       setSkills((previous) => previous.filter((item) => item.id !== skill.id));
       setSkillDrafts((previous) => {
         const next = { ...previous };
@@ -616,6 +691,60 @@ const missingItems = completionItems.filter(
                       </div>
                       <span>{skills.length} skills</span>
                     </div>
+
+                    <form className="mp-create-skill" onSubmit={handleCreateAndAddSkill}>
+                      <h4>Add a new skill to the shared catalog</h4>
+                      <div className="mp-create-skill-grid">
+                        <label className="mp-field">
+                          <span>New skill name</span>
+                          <input
+                            name="name"
+                            value={newSkillDetails.name}
+                            onChange={handleNewSkillDetailsChange}
+                            maxLength={100}
+                            placeholder="e.g. Spring Boot"
+                            required
+                          />
+                        </label>
+                        <label className="mp-field">
+                          <span>Category</span>
+                          <select
+                            name="category"
+                            value={newSkillDetails.category}
+                            onChange={handleNewSkillDetailsChange}
+                            required
+                          >
+                            {["PROGRAMMING", "BACKEND", "FRONTEND", "DATABASE", "DEVOPS", "CLOUD", "DATA", "TESTING", "SOFT_SKILL", "OTHER"].map((category) => (
+                              <option key={category} value={category}>{category.replaceAll("_", " ")}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="mp-field">
+                          <span>Proficiency</span>
+                          <select name="proficiency" value={newSkillDetails.proficiency} onChange={handleNewSkillDetailsChange}>
+                            {PROFICIENCY_OPTIONS.map((level) => (
+                              <option key={level} value={level}>{level}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="mp-field">
+                          <span>Years of experience</span>
+                          <input
+                            type="number"
+                            name="yearsOfExperience"
+                            min="0"
+                            max="60"
+                            step="1"
+                            value={newSkillDetails.yearsOfExperience}
+                            onChange={handleNewSkillDetailsChange}
+                            required
+                          />
+                        </label>
+                      </div>
+                      <button type="submit" className="mp-primary" disabled={savingSkill}>
+                        {savingSkill ? "Creating…" : "Create & Add Skill"}
+                      </button>
+                    </form>
 
                     <form className="mp-add-skill" onSubmit={handleAddSkill}>
                       <label className="mp-field">

@@ -22,7 +22,7 @@ public class SkillController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     public ResponseEntity<SkillResponse> createSkill(
             @Valid @RequestBody SkillCreateRequest request) {
 

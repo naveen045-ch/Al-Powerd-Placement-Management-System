@@ -471,6 +471,13 @@ function RecruiterDashboard({ onLogout }) {
   const [jobs, setJobs] = useState([]);
   const [skills, setSkills] = useState([]);
   const [skillsError, setSkillsError] = useState("");
+  const [newCatalogSkill, setNewCatalogSkill] = useState({
+    name: "",
+    category: "PROGRAMMING",
+  });
+  const [creatingSkill, setCreatingSkill] = useState(false);
+  const [skillCreateMessage, setSkillCreateMessage] = useState("");
+
   const [selectedJobId, setSelectedJobId] = useState("");
 
   const [jobsLoading, setJobsLoading] = useState(true);
@@ -516,6 +523,43 @@ function RecruiterDashboard({ onLogout }) {
   const [editJobForm, setEditJobForm] = useState({
     ...DEFAULT_JOB_FORM,
   });
+
+  async function handleCreateCatalogSkill(event) {
+    event.preventDefault();
+    if (creatingSkill) return;
+
+    const name = newCatalogSkill.name.trim();
+    if (!name) {
+      setSkillsError("Please enter a skill name.");
+      return;
+    }
+
+    setCreatingSkill(true);
+    setSkillsError("");
+    setSkillCreateMessage("");
+
+    try {
+      const response = await api.post("/api/skills", {
+        name,
+        category: newCatalogSkill.category,
+      });
+
+      const created = response.data;
+      setSkills((previous) => {
+        const merged = [
+          ...previous.filter((item) => String(item.id) !== String(created.id)),
+          created,
+        ];
+        return merged.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      });
+      setNewCatalogSkill({ name: "", category: "PROGRAMMING" });
+      setSkillCreateMessage(`${created.name} added to the shared skill catalog.`);
+    } catch (error) {
+      setSkillsError(getError(error, "Unable to create this skill."));
+    } finally {
+      setCreatingSkill(false);
+    }
+  }
 
   // Load recruiter's jobs.
   const loadJobs = useCallback(async () => {
@@ -1061,6 +1105,47 @@ function RecruiterDashboard({ onLogout }) {
           {skillsError && (
             <p className="recruiter-info" role="status">{skillsError}</p>
           )}
+
+          <form className="recruiter-skill-create" onSubmit={handleCreateCatalogSkill}>
+            <strong>Add a skill to the shared catalog</strong>
+            <div className="recruiter-skill-create-fields">
+              <label className="recruiter-form-field">
+                <span>Skill name</span>
+                <input
+                  className="recruiter-input"
+                  value={newCatalogSkill.name}
+                  onChange={(event) => setNewCatalogSkill((previous) => ({
+                    ...previous,
+                    name: event.target.value,
+                  }))}
+                  maxLength={100}
+                  placeholder="e.g. Spring Boot"
+                  required
+                />
+              </label>
+              <label className="recruiter-form-field">
+                <span>Category</span>
+                <select
+                  className="recruiter-input"
+                  value={newCatalogSkill.category}
+                  onChange={(event) => setNewCatalogSkill((previous) => ({
+                    ...previous,
+                    category: event.target.value,
+                  }))}
+                >
+                  {["PROGRAMMING", "BACKEND", "FRONTEND", "DATABASE", "DEVOPS", "CLOUD", "DATA", "TESTING", "SOFT_SKILL", "OTHER"].map((category) => (
+                    <option key={category} value={category}>{category.replaceAll("_", " ")}</option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="recruiter-primary-button" disabled={creatingSkill}>
+                {creatingSkill ? "Adding..." : "Add Skill"}
+              </button>
+            </div>
+            {skillCreateMessage && (
+              <p className="recruiter-success" role="status">{skillCreateMessage}</p>
+            )}
+          </form>
 
           {/* Create job form */}
           {showJobForm && (
