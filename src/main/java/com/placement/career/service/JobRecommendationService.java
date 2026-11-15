@@ -11,6 +11,7 @@ import com.placement.career.repository.StudentProfileRepository;
 import com.placement.career.repository.StudentSkillRepository;
 import com.placement.career.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -36,7 +37,7 @@ public class JobRecommendationService {
         this.studentProfileRepository = studentProfileRepository;
         this.studentSkillRepository = studentSkillRepository;
     }
-
+    @Transactional(readOnly = true)
     public List<JobRecommendationResponse> getRecommendations(String email) {
 
         // 1. Find user
