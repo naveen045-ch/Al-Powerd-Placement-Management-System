@@ -168,6 +168,7 @@ function Dashboard({ role, onLogout }) {
 
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [skillCatalog, setSkillCatalog] = useState([]);
   const [jobSearch, setJobSearch] = useState("");
 
   const [eligibilityResults, setEligibilityResults] = useState({});
@@ -339,6 +340,35 @@ function Dashboard({ role, onLogout }) {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  useEffect(() => {
+    if (normalizedRole !== "STUDENT") return;
+    let active = true;
+    api.get("/api/skills")
+      .then((response) => {
+        if (active) setSkillCatalog(extractList(response.data));
+      })
+      .catch(() => {
+        if (active) setSkillCatalog([]);
+      });
+    return () => { active = false; };
+  }, [normalizedRole]);
+
+  const skillNameById = Object.fromEntries(
+    skillCatalog.map((skill) => [String(skill.id), skill.name])
+  );
+
+  const formatSkillNames = (values) => {
+    if (!Array.isArray(values)) return displayText(values, "None listed");
+    const names = values.map((skill) => {
+      if (skill && typeof skill === "object") {
+        return skill.name || skill.skillName || skillNameById[String(skill.id ?? skill.skillId)] || "";
+      }
+      const key = String(skill);
+      return skillNameById[key] || key;
+    }).filter(Boolean);
+    return names.length ? names.join(", ") : "None listed";
+  };
 
   useEffect(() => {
     if (normalizedRole === "STUDENT") {
@@ -694,6 +724,13 @@ function Dashboard({ role, onLogout }) {
                           </p>
                         )}
 
+                        {Array.isArray(job.requiredSkills) && job.requiredSkills.length > 0 && (
+                          <p className="job-required-skills">
+                            <strong>Required Skills:</strong>{" "}
+                            {formatSkillNames(job.requiredSkills)}
+                          </p>
+                        )}
+
                         <div className="job-card-actions">
                           <button
                             type="button"
@@ -795,7 +832,7 @@ function Dashboard({ role, onLogout }) {
                                   eligibility.matchedSkills.length > 0 && (
                                     <p>
                                       <strong>Matched skills:</strong>{" "}
-                                      {eligibility.matchedSkills.join(", ")}
+                                      {formatSkillNames(eligibility.matchedSkills)}
                                     </p>
                                   )}
 
@@ -803,7 +840,7 @@ function Dashboard({ role, onLogout }) {
                                   eligibility.missingSkills.length > 0 && (
                                     <p>
                                       <strong>Missing skills:</strong>{" "}
-                                      {eligibility.missingSkills.join(", ")}
+                                      {formatSkillNames(eligibility.missingSkills)}
                                     </p>
                                   )}
 
@@ -1019,14 +1056,14 @@ function Dashboard({ role, onLogout }) {
 
                           <p>
                             <strong>Matched Skills:</strong>{" "}
-                            {displayText(recommendation.matchedSkills, "None listed")}
+                            {formatSkillNames(recommendation.matchedSkills)}
                           </p>
 
                           {Array.isArray(recommendation.missingSkills) &&
                             recommendation.missingSkills.length > 0 && (
                               <p>
                                 <strong>Skills to Improve:</strong>{" "}
-                                {recommendation.missingSkills.join(", ")}
+                                {formatSkillNames(recommendation.missingSkills)}
                               </p>
                             )}
 

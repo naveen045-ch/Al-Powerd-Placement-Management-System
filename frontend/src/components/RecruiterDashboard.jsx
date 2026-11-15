@@ -180,11 +180,14 @@ function getSkillIds(job) {
 }
 
 function buildJobPayload(form) {
+  const rawSkillIds = Array.isArray(form.requiredSkillIds)
+    ? form.requiredSkillIds
+    : String(form.requiredSkillIds || "").split(",");
+
   const requiredSkillIds = [
     ...new Set(
-      String(form.requiredSkillIds || "")
-        .split(",")
-        .map((value) => value.trim())
+      rawSkillIds
+        .map((value) => String(value).trim())
         .filter(Boolean)
         .map(Number)
     ),
@@ -198,7 +201,7 @@ function buildJobPayload(form) {
   ) {
     return {
       error:
-        "Enter at least one valid skill ID, for example: 1, 2, 3.",
+        "Please select at least one valid skill.",
     };
   }
 
@@ -262,7 +265,7 @@ function buildJobPayload(form) {
   };
 }
 
-function JobFormFields({ form, setForm, prefix }) {
+function JobFormFields({ form, setForm, prefix, skills }) {
   const update = (field, value) => {
     setForm((previous) => ({
       ...previous,
@@ -429,21 +432,35 @@ function JobFormFields({ form, setForm, prefix }) {
 
       <div className="recruiter-form-field recruiter-skills-field">
         <label htmlFor={`${prefix}-skills`}>
-          Required Skill IDs
+          Required Skills
         </label>
-        <input
+        <select
           id={`${prefix}-skills`}
           className="recruiter-input"
-          value={form.requiredSkillIds}
+          multiple
+          value={(Array.isArray(form.requiredSkillIds)
+            ? form.requiredSkillIds
+            : String(form.requiredSkillIds || "").split(",").filter(Boolean)
+          ).map(String)}
           onChange={(event) =>
-            update("requiredSkillIds", event.target.value)
+            update(
+              "requiredSkillIds",
+              Array.from(event.target.selectedOptions, (option) => option.value)
+            )
           }
-          placeholder="Enter actual IDs, e.g. 1, 2, 3"
           required
-        />
+          size={Math.min(Math.max(skills.length, 4), 8)}
+          disabled={!skills.length}
+        >
+          {skills.map((skill) => (
+            <option key={skill.id} value={String(skill.id)}>
+              {skill.name}{skill.category ? ` (${String(skill.category).replaceAll("_", " ")})` : ""}
+            </option>
+          ))}
+        </select>
         <small>
-          Use the actual skill IDs from your database,
-          separated by commas.
+          Hold Ctrl (Windows) or Command (Mac) to select multiple skills.
+          {!skills.length ? " Skills are loading or unavailable." : ""}
         </small>
       </div>
     </div>
@@ -452,6 +469,8 @@ function JobFormFields({ form, setForm, prefix }) {
 
 function RecruiterDashboard({ onLogout }) {
   const [jobs, setJobs] = useState([]);
+  const [skills, setSkills] = useState([]);
+  const [skillsError, setSkillsError] = useState("");
   const [selectedJobId, setSelectedJobId] = useState("");
 
   const [jobsLoading, setJobsLoading] = useState(true);
@@ -579,6 +598,27 @@ function RecruiterDashboard({ onLogout }) {
   }, [loadJobs]);
 
   useEffect(() => {
+    let active = true;
+    api.get("/api/skills")
+      .then((response) => {
+        if (active) {
+          const list = getList(response.data)
+            .filter((skill) => skill?.id != null && skill?.name)
+            .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+          setSkills(list);
+          setSkillsError(list.length ? "" : "No skills are available. Add skills from the Admin account.");
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setSkills([]);
+          setSkillsError(getError(error, "Unable to load skills."));
+        }
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (selectedJobId) {
       loadApplications(selectedJobId);
     } else {
@@ -648,7 +688,7 @@ function RecruiterDashboard({ onLogout }) {
       applicationDeadline: toDateTimeLocal(
         job.applicationDeadline
       ),
-      requiredSkillIds: getSkillIds(job).join(", "),
+      requiredSkillIds: getSkillIds(job).map(String),
     });
 
     setEditingJobId(String(jobId));
@@ -1018,6 +1058,10 @@ function RecruiterDashboard({ onLogout }) {
             </div>
           )}
 
+          {skillsError && (
+            <p className="recruiter-info" role="status">{skillsError}</p>
+          )}
+
           {/* Create job form */}
           {showJobForm && (
             <form
@@ -1030,6 +1074,7 @@ function RecruiterDashboard({ onLogout }) {
                 form={jobForm}
                 setForm={setJobForm}
                 prefix="new-job"
+                skills={skills}
               />
 
               <button
@@ -1191,6 +1236,7 @@ function RecruiterDashboard({ onLogout }) {
                     form={editJobForm}
                     setForm={setEditJobForm}
                     prefix="edit-job"
+                    skills={skills}
                   />
 
                   <div className="recruiter-applicant-actions">
