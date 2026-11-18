@@ -196,11 +196,11 @@ function App() {
   return (
     <main className="page">
       <header className="brand">
-        <div className="brand-icon">P</div>
+        <div className="brand-icon">G</div>
 
         <div>
-          <h2>PlacementPro</h2>
-          <p>CAREER MANAGEMENT SYSTEM</p>
+          <h2>GyanX</h2>
+          <p>PLACEMENT AND CAREER MANAGEMENT SYSTEM</p>
         </div>
       </header>
 
