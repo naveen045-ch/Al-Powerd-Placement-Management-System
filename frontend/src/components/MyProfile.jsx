@@ -490,7 +490,7 @@ const missingItems = completionItems.filter(
               <div>
                 <span className="mp-eyebrow">ACCOUNT SETTINGS</span>
                 <h2 id="mp-title">My Profile</h2>
-                <p>View and update your PlacementPro profile.</p>
+                <p>View and update your GyanX profile.</p>
               </div>
               <button
                 type="button"

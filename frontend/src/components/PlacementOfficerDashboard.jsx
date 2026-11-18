@@ -824,7 +824,7 @@ function PlacementOfficerDashboard({ onLogout }) {
           <div className="po-brand-mark">P</div>
 
           <div>
-            <strong>PlacementPro</strong>
+            <strong>GyanX</strong>
             <span>PLACEMENT OPERATIONS</span>
           </div>
         </div>
@@ -1269,7 +1269,7 @@ function PlacementOfficerDashboard({ onLogout }) {
 
           <footer className="po-footer">
             <span>
-              PlacementPro{" "}
+              GyanX{" "}
               <span className="po-footer-dot">•</span>{" "}
               Placement Officer Workspace
             </span>

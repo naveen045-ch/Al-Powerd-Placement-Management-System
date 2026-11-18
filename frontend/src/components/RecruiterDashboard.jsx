@@ -964,7 +964,7 @@ function RecruiterDashboard({ onLogout }) {
           <div className="recruiter-brand-icon">P</div>
 
           <div>
-            <h2>PlacementPro</h2>
+            <h2>GyanX</h2>
             <p>RECRUITER WORKSPACE</p>
           </div>
         </div>

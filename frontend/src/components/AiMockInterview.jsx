@@ -655,7 +655,7 @@ function AiMockInterview({ role }) {
 
                 <div>
                   <span className="aim-eyebrow">
-                    PLACEMENTPRO AI
+                    GyanX AI
                   </span>
 
                   <h2 id="aim-title">

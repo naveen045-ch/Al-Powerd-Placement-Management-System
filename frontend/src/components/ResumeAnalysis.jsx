@@ -583,7 +583,7 @@ function ResumeAnalysis({ role }) {
 
                 <div>
                   <span className="ra-eyebrow">
-                    PLACEMENTPRO CAREER TOOLS
+                    GyanX CAREER TOOLS
                   </span>
 
                   <h2 id="ra-title">
@@ -1253,7 +1253,7 @@ function ResumeAnalysis({ role }) {
 
             <footer className="ra-footer">
               <span>
-                PlacementPro <span>•</span> Resume Center
+                GyanX <span>•</span> Resume Center
               </span>
 
               <span>

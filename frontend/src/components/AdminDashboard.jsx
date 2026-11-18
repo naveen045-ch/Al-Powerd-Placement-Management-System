@@ -709,10 +709,10 @@ function AdminDashboard({ onLogout }) {
     <main className="ad-page">
       <header className="ad-topbar">
         <div className="ad-brand">
-          <div className="ad-brand-logo">P</div>
+          <div className="ad-brand-logo">G</div>
 
           <div>
-            <strong>PlacementPro</strong>
+            <strong>GyanX</strong>
             <span>ADMINISTRATION CONSOLE</span>
           </div>
         </div>
@@ -990,7 +990,7 @@ function AdminDashboard({ onLogout }) {
                 </h2>
 
                 <p>
-                  Add a student, recruiter, or placement officer to PlacementPro.
+                  Add a student, recruiter, or placement officer to GyanX.
                 </p>
               </div>
 
@@ -1571,7 +1571,7 @@ function AdminDashboard({ onLogout }) {
 
         <footer className="ad-footer">
           <span>
-            PlacementPro{" "}
+            GyanX{" "}
             <span className="ad-footer-dot">•</span>{" "}
             Administration console
           </span>

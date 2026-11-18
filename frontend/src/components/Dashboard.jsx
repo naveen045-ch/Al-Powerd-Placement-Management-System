@@ -163,7 +163,7 @@ function Dashboard({ role, onLogout }) {
 
   const config = ROLE_CONFIG[normalizedRole] || {
     title: "Dashboard",
-    subtitle: "Welcome to PlacementPro.",
+    subtitle: "Welcome to GyanX.",
   };
 
   const [jobs, setJobs] = useState([]);
@@ -640,7 +640,7 @@ function Dashboard({ role, onLogout }) {
               <div>
                 <h2>Available Jobs</h2>
                 <p>
-                  Explore job opportunities available through PlacementPro.
+                  Explore job opportunities available through GyanX.
                 </p>
 
                 <input

@@ -468,7 +468,7 @@ function NotificationCenter() {
           <header className="nc-panel-header">
             <div>
               <span className="nc-panel-eyebrow">
-                PLACEMENTPRO
+                GyanX
               </span>
 
               <h2>Notifications</h2>
