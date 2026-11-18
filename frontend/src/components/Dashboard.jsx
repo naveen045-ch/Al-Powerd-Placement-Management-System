@@ -524,10 +524,10 @@ function Dashboard({ role, onLogout }) {
     <main className="dashboard-page">
       <header className="dashboard-header">
         <div className="dashboard-brand">
-          <div className="dashboard-brand-icon">P</div>
+          <div className="dashboard-brand-icon">G</div>
           <div>
-            <h2>PlacementPro</h2>
-            <p>CAREER MANAGEMENT SYSTEM</p>
+            <h2>GyanX</h2>
+            <p>PLACEMENT ANDCAREER MANAGEMENT SYSTEM</p>
           </div>
         </div>
 
