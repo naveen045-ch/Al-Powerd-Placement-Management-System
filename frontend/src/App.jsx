@@ -14,6 +14,7 @@ function App() {
   const [step, setStep] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
   const [otp, setOtp] = useState("");
   const [challengeId, setChallengeId] = useState("");
   const [maskedEmail, setMaskedEmail] = useState("");
@@ -39,6 +40,12 @@ function App() {
 
     setError("");
     setMessage("");
+
+    if (!selectedRole) {
+      setError("Please select the role you are logging in as.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -100,10 +107,7 @@ function App() {
         );
       }
 
-      // Save JWT token
-      localStorage.setItem("accessToken", token);
-
-      // Detect role from backend response or JWT
+      // Detect the authoritative role from backend response or JWT.
       const detectedRole = getUserRole(data, token);
 
       if (!detectedRole) {
@@ -115,6 +119,23 @@ function App() {
 
         return;
       }
+
+      // The selected role is only a login intent; backend/JWT role is authoritative.
+      const normalizeRole = (value) => String(value || "")
+        .replace(/^ROLE_/, "")
+        .trim()
+        .toUpperCase();
+
+      if (normalizeRole(detectedRole) !== normalizeRole(selectedRole)) {
+        setError(`This account is registered as ${normalizeRole(detectedRole).replaceAll("_", " ")}. Please select the correct role.`);
+        setOtp("");
+        setChallengeId("");
+        setStep("login");
+        return;
+      }
+
+      // Save JWT only after selected role matches the backend/JWT role.
+      localStorage.setItem("accessToken", token);
 
       // Save detected role
       localStorage.setItem("userRole", detectedRole);
@@ -172,6 +193,7 @@ function App() {
     setStep("login");
     setEmail("");
     setPassword("");
+    setSelectedRole("");
     setOtp("");
     setChallengeId("");
     setMaskedEmail("");
@@ -274,6 +296,33 @@ function App() {
               </div>
 
               <form onSubmit={handleLogin}>
+                <fieldset className="login-role-picker">
+                  <legend>Who are you logging in as?</legend>
+                  <div className="login-role-grid">
+                    {[
+                      { value: "STUDENT", label: "Student", icon: "🎓" },
+                      { value: "RECRUITER", label: "Recruiter", icon: "🏢" },
+                      { value: "PLACEMENT_OFFICER", label: "Placement Officer", icon: "💼" },
+                      { value: "ADMIN", label: "Admin", icon: "🛡️" },
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        className={`login-role-card ${selectedRole === item.value ? "selected" : ""}`}
+                        aria-pressed={selectedRole === item.value}
+                        onClick={() => {
+                          setSelectedRole(item.value);
+                          setError("");
+                        }}
+                        disabled={loading}
+                      >
+                        <span className="login-role-icon" aria-hidden="true">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
                 <label htmlFor="email">
                   Email address
                 </label>
@@ -328,6 +377,9 @@ function App() {
                 </span>
 
                 <h2>Verify your OTP</h2>
+                <p className="login-selected-role">
+                  Logging in as: <strong>{selectedRole.replaceAll("_", " ")}</strong>
+                </p>
 
                 <p>
                   Enter the six-digit code sent to{" "}
@@ -385,6 +437,7 @@ function App() {
                 onClick={() => {
                   setStep("login");
                   setOtp("");
+                  setSelectedRole("");
                   setError("");
                   setMessage("");
                 }}
